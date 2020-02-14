@@ -158,6 +158,30 @@ void CompilerUtil::dumpCuda(std::ostream& os, std::shared_ptr<iir::StencilInstan
   dump(generator, os);
 }
 
+std::string CompilerUtil::generate(std::shared_ptr<iir::StencilInstantiation>& si,
+                                   const std::string& srcFile, const bool writeStdout) {
+  std::ostringstream oss;
+  if(srcFile.find(".cu") != std::string::npos) {
+    dumpCuda(oss, si);
+  } else if(srcFile.find("ico") != std::string::npos) {
+    dumpNaiveIco(oss, si);
+  } else {
+    dumpNaive(oss, si);
+  }
+  std::string code = oss.str();
+
+  if(writeStdout) {
+    std::cout << code;
+  }
+
+  if(!srcFile.empty()) {
+    std::ofstream ofs(srcFile);
+    ofs << code;
+  }
+
+  return code;
+}
+
 std::vector<std::shared_ptr<Pass>>
 CompilerUtil::createGroup(PassGroup group, std::unique_ptr<OptimizerContext>& context) {
   auto mssSplitStrategy = dawn::PassMultiStageSplitter::MultiStageSplittingStrategy::Optimized;
@@ -243,8 +267,9 @@ CompilerUtil::createGroup(PassGroup group, std::unique_ptr<OptimizerContext>& co
   return passes;
 }
 
-bool CompilerUtil::runPasses(unsigned nPasses, std::unique_ptr<OptimizerContext>& context,
-                             std::shared_ptr<dawn::iir::StencilInstantiation>& instantiation) {
+bool CompilerUtil::runPasses(std::unique_ptr<OptimizerContext>& context,
+                             std::shared_ptr<dawn::iir::StencilInstantiation>& instantiation,
+                             const unsigned nPasses) {
   auto mssSplitStrategy = dawn::PassMultiStageSplitter::MultiStageSplittingStrategy::Optimized;
   auto inlineStrategy = dawn::PassInlining::InlineStrategy::InlineProcedures;
   auto reorderStrategy = dawn::ReorderStrategy::Kind::Greedy;
