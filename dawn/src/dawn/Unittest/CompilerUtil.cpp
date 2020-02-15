@@ -13,6 +13,7 @@
 //===------------------------------------------------------------------------------------------===//
 
 #include "dawn/Unittest/CompilerUtil.h"
+#include "dawn/CodeGen/CXXNaive-ico/CXXNaiveCodeGen.h"
 #include "dawn/CodeGen/CXXNaive/CXXNaiveCodeGen.h"
 #include "dawn/CodeGen/CodeGen.h"
 #include "dawn/CodeGen/Cuda/CudaCodeGen.h"
@@ -38,10 +39,7 @@
 #include "dawn/Optimizer/PassTemporaryMerger.h"
 #include "dawn/Optimizer/PassTemporaryToStencilFunction.h"
 #include "dawn/Optimizer/PassTemporaryType.h"
-
-#include "dawn/CodeGen/CXXNaive-ico/CXXNaiveCodeGen.h"
-#include "dawn/CodeGen/CXXNaive/CXXNaiveCodeGen.h"
-#include "dawn/CodeGen/Cuda/CudaCodeGen.h"
+#include "dawn/Support/FileSystem.h"
 
 namespace dawn {
 
@@ -180,6 +178,11 @@ std::string CompilerUtil::generate(std::shared_ptr<iir::StencilInstantiation>& s
   }
 
   return code;
+}
+
+std::string CompilerUtil::build(const std::string& srcFile, const std::string& compiler) {
+
+  return "";
 }
 
 std::vector<std::shared_ptr<Pass>>

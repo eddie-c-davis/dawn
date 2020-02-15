@@ -40,4 +40,9 @@ TEST(IRSplittingTest, CacheTest) {
       "PassSetCaches/IJCacheTest02.cpp", {"-freport-pass-set-caches"});
 }
 
+TEST(IRSplittingTest, CodeGen) {
+  gtclang::IRSplitter("../../../../dawn/test/unit-test/dawn/CodeGen/Naive/input", 1).split(
+      "conditional_stencil.cpp", {});
+}
+
 } // anonymous namespace

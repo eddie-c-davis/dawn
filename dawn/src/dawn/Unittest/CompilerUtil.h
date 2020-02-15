@@ -76,6 +76,8 @@ public:
   static std::string generate(std::shared_ptr<iir::StencilInstantiation>& si,
                               const std::string& srcFile = "", const bool writeStdout = false);
 
+  static std::string build(const std::string& srcFile, const std::string& compiler = "g++");
+
   template <class TPass, typename... Args>
   static void addPass(std::unique_ptr<OptimizerContext>& context,
                       std::vector<std::shared_ptr<Pass>>& passes, Args&&... args) {
