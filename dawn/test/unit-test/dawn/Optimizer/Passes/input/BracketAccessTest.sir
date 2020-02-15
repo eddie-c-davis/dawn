@@ -1,0 +1,783 @@
+{
+ "gridType": "Cartesian",
+ "filename": "BracketAccessTest.cpp",
+ "stencils": [
+  {
+   "name": "Test01",
+   "loc": {
+    "Line": 30,
+    "Column": 8
+   },
+   "ast": {
+    "root": {
+     "block_stmt": {
+      "statements": [
+       {
+        "vertical_region_decl_stmt": {
+         "vertical_region": {
+          "loc": {
+           "Line": 34,
+           "Column": 5
+          },
+          "ast": {
+           "root": {
+            "block_stmt": {
+             "statements": [
+              {
+               "expr_stmt": {
+                "expr": {
+                 "assignment_expr": {
+                  "left": {
+                   "field_access_expr": {
+                    "name": "foo",
+                    "vertical_offset": 0,
+                    "cartesian_offset": {
+                     "i_offset": 0,
+                     "j_offset": 1
+                    },
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 35,
+                     "Column": 7
+                    },
+                    "data": {},
+                    "ID": 8
+                   }
+                  },
+                  "op": "=",
+                  "right": {
+                   "literal_access_expr": {
+                    "value": "5",
+                    "type": {
+                     "type_id": "Integer"
+                    },
+                    "loc": {
+                     "Line": 35,
+                     "Column": 26
+                    },
+                    "data": {},
+                    "ID": 7
+                   }
+                  },
+                  "loc": {
+                   "Line": 35,
+                   "Column": 7
+                  },
+                  "ID": 9
+                 }
+                },
+                "loc": {
+                 "Line": 35,
+                 "Column": 7
+                },
+                "data": {},
+                "ID": 10
+               }
+              },
+              {
+               "expr_stmt": {
+                "expr": {
+                 "assignment_expr": {
+                  "left": {
+                   "field_access_expr": {
+                    "name": "foo",
+                    "vertical_offset": 0,
+                    "zero_offset": {},
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 36,
+                     "Column": 7
+                    },
+                    "data": {},
+                    "ID": 12
+                   }
+                  },
+                  "op": "=",
+                  "right": {
+                   "field_access_expr": {
+                    "name": "bar",
+                    "vertical_offset": 0,
+                    "zero_offset": {},
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 36,
+                     "Column": 13
+                    },
+                    "data": {},
+                    "ID": 11
+                   }
+                  },
+                  "loc": {
+                   "Line": 36,
+                   "Column": 7
+                  },
+                  "ID": 13
+                 }
+                },
+                "loc": {
+                 "Line": 36,
+                 "Column": 7
+                },
+                "data": {},
+                "ID": 14
+               }
+              },
+              {
+               "expr_stmt": {
+                "expr": {
+                 "assignment_expr": {
+                  "left": {
+                   "field_access_expr": {
+                    "name": "foo",
+                    "vertical_offset": 0,
+                    "zero_offset": {},
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 37,
+                     "Column": 7
+                    },
+                    "data": {},
+                    "ID": 16
+                   }
+                  },
+                  "op": "=",
+                  "right": {
+                   "field_access_expr": {
+                    "name": "bar",
+                    "vertical_offset": 0,
+                    "zero_offset": {},
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 37,
+                     "Column": 16
+                    },
+                    "data": {},
+                    "ID": 15
+                   }
+                  },
+                  "loc": {
+                   "Line": 37,
+                   "Column": 7
+                  },
+                  "ID": 17
+                 }
+                },
+                "loc": {
+                 "Line": 37,
+                 "Column": 7
+                },
+                "data": {},
+                "ID": 18
+               }
+              },
+              {
+               "expr_stmt": {
+                "expr": {
+                 "assignment_expr": {
+                  "left": {
+                   "field_access_expr": {
+                    "name": "foo",
+                    "vertical_offset": 0,
+                    "zero_offset": {},
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 38,
+                     "Column": 7
+                    },
+                    "data": {},
+                    "ID": 21
+                   }
+                  },
+                  "op": "=",
+                  "right": {
+                   "stencil_fun_call_expr": {
+                    "callee": "TestFun",
+                    "arguments": [
+                     {
+                      "field_access_expr": {
+                       "name": "bar",
+                       "vertical_offset": 0,
+                       "cartesian_offset": {
+                        "i_offset": 1,
+                        "j_offset": 0
+                       },
+                       "argument_map": [
+                        -1,
+                        -1,
+                        -1
+                       ],
+                       "argument_offset": [
+                        0,
+                        0,
+                        0
+                       ],
+                       "negate_offset": false,
+                       "loc": {
+                        "Line": 38,
+                        "Column": 21
+                       },
+                       "data": {},
+                       "ID": 20
+                      }
+                     }
+                    ],
+                    "loc": {
+                     "Line": 38,
+                     "Column": 13
+                    },
+                    "ID": 19
+                   }
+                  },
+                  "loc": {
+                   "Line": 38,
+                   "Column": 7
+                  },
+                  "ID": 22
+                 }
+                },
+                "loc": {
+                 "Line": 38,
+                 "Column": 7
+                },
+                "data": {},
+                "ID": 23
+               }
+              }
+             ],
+             "loc": {
+              "Line": 34,
+              "Column": 5
+             },
+             "data": {},
+             "ID": 6
+            }
+           }
+          },
+          "interval": {
+           "lower_offset": 0,
+           "upper_offset": 0,
+           "special_lower_level": "Start",
+           "special_upper_level": "Start"
+          },
+          "loop_order": "Forward"
+         },
+         "loc": {
+          "Line": 34,
+          "Column": 5
+         },
+         "data": {},
+         "ID": 24
+        }
+       }
+      ],
+      "loc": {
+       "Line": -1,
+       "Column": -1
+      },
+      "data": {},
+      "ID": 5
+     }
+    }
+   },
+   "fields": [
+    {
+     "name": "foo",
+     "loc": {
+      "Line": 31,
+      "Column": 11
+     },
+     "is_temporary": false,
+     "field_dimensions": {
+      "cartesian_horizontal_dimension": {
+       "mask_cart_i": 1,
+       "mask_cart_j": 1
+      },
+      "mask_k": 1
+     }
+    },
+    {
+     "name": "bar",
+     "loc": {
+      "Line": 31,
+      "Column": 16
+     },
+     "is_temporary": false,
+     "field_dimensions": {
+      "cartesian_horizontal_dimension": {
+       "mask_cart_i": 1,
+       "mask_cart_j": 1
+      },
+      "mask_k": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "Test02",
+   "loc": {
+    "Line": 43,
+    "Column": 8
+   },
+   "ast": {
+    "root": {
+     "block_stmt": {
+      "statements": [
+       {
+        "vertical_region_decl_stmt": {
+         "vertical_region": {
+          "loc": {
+           "Line": 47,
+           "Column": 5
+          },
+          "ast": {
+           "root": {
+            "block_stmt": {
+             "statements": [
+              {
+               "expr_stmt": {
+                "expr": {
+                 "assignment_expr": {
+                  "left": {
+                   "field_access_expr": {
+                    "name": "foo",
+                    "vertical_offset": 0,
+                    "cartesian_offset": {
+                     "i_offset": 0,
+                     "j_offset": 1
+                    },
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 48,
+                     "Column": 7
+                    },
+                    "data": {},
+                    "ID": 29
+                   }
+                  },
+                  "op": "=",
+                  "right": {
+                   "field_access_expr": {
+                    "name": "bar",
+                    "vertical_offset": 0,
+                    "zero_offset": {},
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 48,
+                     "Column": 26
+                    },
+                    "data": {},
+                    "ID": 28
+                   }
+                  },
+                  "loc": {
+                   "Line": 48,
+                   "Column": 7
+                  },
+                  "ID": 30
+                 }
+                },
+                "loc": {
+                 "Line": 48,
+                 "Column": 7
+                },
+                "data": {},
+                "ID": 31
+               }
+              }
+             ],
+             "loc": {
+              "Line": 47,
+              "Column": 5
+             },
+             "data": {},
+             "ID": 27
+            }
+           }
+          },
+          "interval": {
+           "lower_offset": 0,
+           "upper_offset": 0,
+           "special_lower_level": "Start",
+           "special_upper_level": "Start"
+          },
+          "loop_order": "Forward"
+         },
+         "loc": {
+          "Line": 47,
+          "Column": 5
+         },
+         "data": {},
+         "ID": 32
+        }
+       }
+      ],
+      "loc": {
+       "Line": -1,
+       "Column": -1
+      },
+      "data": {},
+      "ID": 26
+     }
+    }
+   },
+   "fields": [
+    {
+     "name": "foo",
+     "loc": {
+      "Line": 44,
+      "Column": 11
+     },
+     "is_temporary": false,
+     "field_dimensions": {
+      "cartesian_horizontal_dimension": {
+       "mask_cart_i": 1,
+       "mask_cart_j": 1
+      },
+      "mask_k": 1
+     }
+    },
+    {
+     "name": "bar",
+     "loc": {
+      "Line": 44,
+      "Column": 16
+     },
+     "is_temporary": false,
+     "field_dimensions": {
+      "cartesian_horizontal_dimension": {
+       "mask_cart_i": 1,
+       "mask_cart_j": 1
+      },
+      "mask_k": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "Test03",
+   "loc": {
+    "Line": 52,
+    "Column": 8
+   },
+   "ast": {
+    "root": {
+     "block_stmt": {
+      "statements": [
+       {
+        "vertical_region_decl_stmt": {
+         "vertical_region": {
+          "loc": {
+           "Line": 56,
+           "Column": 5
+          },
+          "ast": {
+           "root": {
+            "block_stmt": {
+             "statements": [
+              {
+               "expr_stmt": {
+                "expr": {
+                 "assignment_expr": {
+                  "left": {
+                   "field_access_expr": {
+                    "name": "foo",
+                    "vertical_offset": 0,
+                    "cartesian_offset": {
+                     "i_offset": 0,
+                     "j_offset": 1
+                    },
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 57,
+                     "Column": 7
+                    },
+                    "data": {},
+                    "ID": 37
+                   }
+                  },
+                  "op": "=",
+                  "right": {
+                   "field_access_expr": {
+                    "name": "bar",
+                    "vertical_offset": 0,
+                    "zero_offset": {},
+                    "argument_map": [
+                     -1,
+                     -1,
+                     -1
+                    ],
+                    "argument_offset": [
+                     0,
+                     0,
+                     0
+                    ],
+                    "negate_offset": false,
+                    "loc": {
+                     "Line": 57,
+                     "Column": 26
+                    },
+                    "data": {},
+                    "ID": 36
+                   }
+                  },
+                  "loc": {
+                   "Line": 57,
+                   "Column": 7
+                  },
+                  "ID": 38
+                 }
+                },
+                "loc": {
+                 "Line": 57,
+                 "Column": 7
+                },
+                "data": {},
+                "ID": 39
+               }
+              }
+             ],
+             "loc": {
+              "Line": 56,
+              "Column": 5
+             },
+             "data": {},
+             "ID": 35
+            }
+           }
+          },
+          "interval": {
+           "lower_offset": 0,
+           "upper_offset": 0,
+           "special_lower_level": "Start",
+           "special_upper_level": "Start"
+          },
+          "loop_order": "Forward"
+         },
+         "loc": {
+          "Line": 56,
+          "Column": 5
+         },
+         "data": {},
+         "ID": 40
+        }
+       }
+      ],
+      "loc": {
+       "Line": -1,
+       "Column": -1
+      },
+      "data": {},
+      "ID": 34
+     }
+    }
+   },
+   "fields": [
+    {
+     "name": "foo",
+     "loc": {
+      "Line": 53,
+      "Column": 11
+     },
+     "is_temporary": false,
+     "field_dimensions": {
+      "cartesian_horizontal_dimension": {
+       "mask_cart_i": 1,
+       "mask_cart_j": 1
+      },
+      "mask_k": 1
+     }
+    },
+    {
+     "name": "bar",
+     "loc": {
+      "Line": 53,
+      "Column": 16
+     },
+     "is_temporary": false,
+     "field_dimensions": {
+      "cartesian_horizontal_dimension": {
+       "mask_cart_i": 1,
+       "mask_cart_j": 1
+      },
+      "mask_k": 1
+     }
+    }
+   ]
+  }
+ ],
+ "stencil_functions": [
+  {
+   "name": "TestFun",
+   "loc": {
+    "Line": 24,
+    "Column": 8
+   },
+   "asts": [
+    {
+     "root": {
+      "block_stmt": {
+       "statements": [
+        {
+         "return_stmt": {
+          "expr": {
+           "field_access_expr": {
+            "name": "foo",
+            "vertical_offset": 0,
+            "cartesian_offset": {
+             "i_offset": 1,
+             "j_offset": 0
+            },
+            "argument_map": [
+             -1,
+             -1,
+             -1
+            ],
+            "argument_offset": [
+             0,
+             0,
+             0
+            ],
+            "negate_offset": false,
+            "loc": {
+             "Line": 27,
+             "Column": 25
+            },
+            "data": {},
+            "ID": 2
+           }
+          },
+          "loc": {
+           "Line": 27,
+           "Column": 18
+          },
+          "data": {},
+          "ID": 3
+         }
+        }
+       ],
+       "loc": {
+        "Line": 27,
+        "Column": 16
+       },
+       "data": {},
+       "ID": 1
+      }
+     }
+    }
+   ],
+   "intervals": [],
+   "arguments": [
+    {
+     "field_value": {
+      "name": "foo",
+      "loc": {
+       "Line": 25,
+       "Column": 11
+      },
+      "is_temporary": false,
+      "field_dimensions": {
+       "cartesian_horizontal_dimension": {
+        "mask_cart_i": 1,
+        "mask_cart_j": 1
+       },
+       "mask_k": 1
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "global_variables": {
+  "map": {}
+ }
+}
