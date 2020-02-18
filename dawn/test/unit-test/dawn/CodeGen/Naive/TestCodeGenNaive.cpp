@@ -86,14 +86,13 @@ protected:
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               std::array<double, M * N * P>& inData, std::array<double, M * N * P>& outData,
-               const std::string& gen_file, const std::string& stencil_name,
-               const std::string& backend = "cxxnaive") {
-    std::string gen = CompilerUtil::generate(instantiation, gen_file);
+               std::array<double, M * N * P>& outData, const std::vector<double>& inFillValues,
+               const double outFillValue,  const std::string& genFile = "", const std::string& backend = "cxxnaive") {
+    std::string gen = CompilerUtil::generate(instantiation, genFile);
     ASSERT_GT(gen.size(), 0);
 
     // Create wrapper
-    std::ofstream ofs(gen_file);
+    std::ofstream ofs(genFile);
     ofs << gen << std::endl;
     ofs << "#include \"driver-includes/verify.hpp\"\n";
     ofs << "\nint main() {\n";
@@ -101,23 +100,28 @@ protected:
     ofs << "  meta_data_t meta(" << M << ", " << N << ", " << P << ");\n";
     ofs << "  storage_t in(meta, \"in\"), out(meta, \"out\");\n";
     ofs << "  verifier verif(dom);\n";
-    ofs << "  verif.fillMath(8.0, 2.0, 1.5, 1.5, 2.0, 4.0, in);\n";
-    ofs << "  verif.fill(-1.0, out);\n";
-    ofs << "  dawn_generated::" << backend << "::" << stencil_name << " stencil(dom);\n";
+    ofs << "  verif.fillMath("; //8.0, 2.0, 1.5, 1.5, 2.0, 4.0, in);\n";
+    for(const double fillValue : inFillValues) {
+      ofs << fillValue << ", ";
+    }
+    ofs << "in);\n";
+    ofs << "  verif.fill(" << outFillValue << ", out);\n";
+    ofs << "  dawn_generated::" << backend << "::" << instantiation->getMetaData().getStencilName()
+        << " stencil(dom);\n";
     ofs << "  stencil.run(in, out);\n";
     ofs << "}\n";
     ofs.close();
 
-    std::string out_file = gen_file;
-    unsigned pos = out_file.rfind('.');
+    std::string outFile = genFile;
+    unsigned pos = outFile.rfind('.');
     if(pos != std::string::npos) {
-      out_file = out_file.substr(0, pos);
+        outFile = outFile.substr(0, pos);
     }
 
-    std::string build_out = CompilerUtil::build(gen_file, out_file);
-    ASSERT_TRUE(build_out.empty());
-    ASSERT_FALSE(out_file.empty());
-    ASSERT_TRUE(fs::exists(out_file));
+    std::string buildOut = CompilerUtil::build(genFile, outFile);
+    ASSERT_TRUE(buildOut.empty());
+    ASSERT_FALSE(outFile.empty());
+    ASSERT_TRUE(fs::exists(outFile));
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
@@ -174,8 +178,7 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   }
 
   // Run the generated code
-  runTest<N, N, N + 1>(instantiation, inData, outData, "output/asymmetric.cpp",
-                       "asymmetric_stencil");
+  runTest<N, N, N + 1>(instantiation, outData, {8.0, 2.0, 1.5, 1.5, 2.0, 4.0}, -1.0, "output/asymmetric.cpp");
 }
 
 TEST_F(TestCodeGenNaive, GlobalIndexStencil) {
