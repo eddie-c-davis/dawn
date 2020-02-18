@@ -38,7 +38,7 @@ protected:
 
   virtual void SetUp() { dawn::UIDGenerator::getInstance()->reset(); }
 
-  template<unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
+  template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void fillMath(std::array<double, M * N * P>& data, double a, double b, double c, double d,
                 double e, double f) {
     double pi = std::atan(1.) * 4.;
@@ -55,7 +55,7 @@ protected:
     }
   }
 
-  template<unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
+  template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void fillValue(std::array<double, M * N * P>& data, double val = 0.0) {
     for(int i = 0; i < M; ++i) {
       for(int j = 0; j < N; ++j) {
@@ -86,9 +86,27 @@ protected:
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               std::array<double, M * N * P>& data, const std::string& gen_file) {
+               std::array<double, M * N * P>& inData, std::array<double, M * N * P>& outData,
+               const std::string& gen_file, const std::string& stencil_name,
+               const std::string& backend = "cxxnaive") {
     std::string gen = CompilerUtil::generate(instantiation, gen_file);
     ASSERT_GT(gen.size(), 0);
+
+    // Create wrapper
+    std::ofstream ofs(gen_file);
+    ofs << gen << std::endl;
+    ofs << "#include \"driver-includes/verify.hpp\"\n";
+    ofs << "\nint main() {\n";
+    ofs << "  domain dom(" << M << ", " << N << ", " << P - 1 << ");\n";
+    ofs << "  meta_data_t meta(" << M << ", " << N << ", " << P << ");\n";
+    ofs << "  storage_t in(meta, \"in\"), out(meta, \"out\");\n";
+    ofs << "  verifier verif(dom);\n";
+    ofs << "  verif.fillMath(8.0, 2.0, 1.5, 1.5, 2.0, 4.0, in);\n";
+    ofs << "  verif.fill(-1.0, out);\n";
+    ofs << "  dawn_generated::" << backend << "::" << stencil_name << " stencil(dom);\n";
+    ofs << "  stencil.run(in, out);\n";
+    ofs << "}\n";
+    ofs.close();
 
     std::string out_file = gen_file;
     unsigned pos = out_file.rfind('.');
@@ -156,7 +174,8 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   }
 
   // Run the generated code
-  runTest<N, N, N + 1>(instantiation, outData, "output/asymmetric.cpp");
+  runTest<N, N, N + 1>(instantiation, inData, outData, "output/asymmetric.cpp",
+                       "asymmetric_stencil");
 }
 
 TEST_F(TestCodeGenNaive, GlobalIndexStencil) {
