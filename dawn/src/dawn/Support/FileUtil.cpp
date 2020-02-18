@@ -32,4 +32,20 @@ std::string readFile(const std::string& file) {
   return std::string((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
 }
 
+std::string readPipe(const std::string& path) {
+  std::string command = path + " 2>&1";
+  std::array<char, 1024> buffer;
+  std::string result;
+
+  FILE* pipe = popen(command.c_str(), "r");
+  if(pipe) {
+    while(fgets(buffer.data(), 1024, pipe)) {
+      result += buffer.data();
+    }
+    pclose(pipe);
+  }
+
+  return result;
+}
+
 } // namespace dawn

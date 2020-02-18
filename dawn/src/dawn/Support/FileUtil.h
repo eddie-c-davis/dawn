@@ -39,6 +39,10 @@ extern StringRef getFilenameWithoutExtension(StringRef path);
 /// @ingroup support
 std::string readFile(const std::string& file);
 
+/// @brief Read the contents of a pipe into a string
+/// @ingroup support
+std::string readPipe(const std::string& path);
+
 } // namespace dawn
 
 #endif

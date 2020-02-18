@@ -40,6 +40,7 @@
 #include "dawn/Optimizer/PassTemporaryToStencilFunction.h"
 #include "dawn/Optimizer/PassTemporaryType.h"
 #include "dawn/Support/FileSystem.h"
+#include "dawn/Support/FileUtil.h"
 
 namespace dawn {
 
@@ -180,9 +181,34 @@ std::string CompilerUtil::generate(std::shared_ptr<iir::StencilInstantiation>& s
   return code;
 }
 
-std::string CompilerUtil::build(const std::string& srcFile, const std::string& compiler) {
+std::string CompilerUtil::build(const std::string& srcFile, std::string& outFile,
+                                const std::string& compiler, const std::vector<std::string>& args) {
+  std::vector<std::string> includes;
+  includes.push_back("../../../../../src");
+  includes.push_back("../../../../../../gtclang");
+  includes.push_back("../../../../../../gtclang/src");
+  includes.push_back("../../../../../../build/_deps/gridtools-src/include");
 
-  return "";
+  std::string compileCmd = compiler + " " + srcFile;
+  for(const std::string& include : includes) {
+    compileCmd += " -I" + include;
+  }
+
+  for(const std::string& arg : args) {
+    compileCmd += " " + arg;
+  }
+
+  if(outFile.empty()) {
+    outFile = srcFile.substr(0, srcFile.rfind('.')) + ".o";
+  }
+
+  if(outFile.find(".o") != std::string::npos) {
+    compileCmd += " -c";
+  }
+
+  compileCmd += " -o " + outFile;
+
+  return readPipe(compileCmd);
 }
 
 std::vector<std::shared_ptr<Pass>>
