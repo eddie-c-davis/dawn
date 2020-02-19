@@ -20,6 +20,7 @@
 #include "dawn/Support/DiagnosticsEngine.h"
 #include "dawn/Support/FileSystem.h"
 #include "dawn/Support/FileUtil.h"
+#include "dawn/Support/StringUtil.h"
 #include "dawn/Unittest/CompilerUtil.h"
 #include "dawn/Unittest/IIRBuilder.h"
 #include "dawn/Unittest/UnittestLogger.h"
@@ -68,12 +69,6 @@ protected:
 
   void genTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
                const std::string& ref_file = "") {
-
-    // Run prerequisite groups
-    //    ASSERT_TRUE(CompilerUtil::runGroup(PassGroup::Parallel, context_, instantiation));
-    //    ASSERT_TRUE(CompilerUtil::runGroup(PassGroup::ReorderStages, context_, instantiation));
-    //    ASSERT_TRUE(CompilerUtil::runGroup(PassGroup::MergeStages, context_, instantiation));
-
     // Expect codegen to succeed...
     std::string gen = CompilerUtil::generate(instantiation);
     ASSERT_GT(gen.size(), 0);
@@ -86,8 +81,9 @@ protected:
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               std::array<double, M * N * P>& outData, const std::vector<double>& inFillValues,
-               const double outFillValue,  const std::string& genFile = "", const std::string& backend = "cxxnaive") {
+               std::vector<double>& outData, const unsigned halo,
+               const std::vector<double>& inFillValues, const double outFillValue,
+               const std::string& genFile = "", const std::string& backend = "cxxnaive") {
     std::string gen = CompilerUtil::generate(instantiation, genFile);
     ASSERT_GT(gen.size(), 0);
 
@@ -95,12 +91,26 @@ protected:
     std::ofstream ofs(genFile);
     ofs << gen << std::endl;
     ofs << "#include \"driver-includes/verify.hpp\"\n";
+    ofs << "#include <iostream>\n";
+    ofs << "#include <iomanip>\n";
+
+    // Add print function...
+    ofs << "\nvoid print(const domain& dom, const gridtools::data_view<storage_ijk_t>& view) {\n";
+    ofs << "  for(int i = dom.iminus(); i < std::min(int(dom.isize() - dom.iplus()), view.total_length<0>()); ++i)\n";
+    ofs << "    for(int j = dom.jminus(); j < std::min(int(dom.jsize() - dom.jplus()), view.total_length<1>()); ++j)\n";
+    ofs << "      for(int k = dom.kminus(); k < std::min(int(dom.ksize() - dom.kplus()), view.total_length<2>()); ++k)\n";
+    ofs << "        std::cout << std::setprecision(9) << view(i, j, k) << ' ';\n";
+    ofs << "}\n";
+
+    // Add main function...
     ofs << "\nint main() {\n";
     ofs << "  domain dom(" << M << ", " << N << ", " << P - 1 << ");\n";
+    ofs << "  dom.set_halos(" << halo << ", " << halo << ", " << halo << ", " << halo
+        << ", 0, 0);\n";
     ofs << "  meta_data_t meta(" << M << ", " << N << ", " << P << ");\n";
     ofs << "  storage_t in(meta, \"in\"), out(meta, \"out\");\n";
     ofs << "  verifier verif(dom);\n";
-    ofs << "  verif.fillMath("; //8.0, 2.0, 1.5, 1.5, 2.0, 4.0, in);\n";
+    ofs << "  verif.fillMath("; // 8.0, 2.0, 1.5, 1.5, 2.0, 4.0, in);\n";
     for(const double fillValue : inFillValues) {
       ofs << fillValue << ", ";
     }
@@ -109,27 +119,39 @@ protected:
     ofs << "  dawn_generated::" << backend << "::" << instantiation->getMetaData().getStencilName()
         << " stencil(dom);\n";
     ofs << "  stencil.run(in, out);\n";
+    ofs << "  print(dom, make_host_view(out));\n";
     ofs << "}\n";
     ofs.close();
 
     std::string outFile = genFile;
     unsigned pos = outFile.rfind('.');
     if(pos != std::string::npos) {
-        outFile = outFile.substr(0, pos);
+      outFile = outFile.substr(0, pos);
     }
 
     std::string buildOut = CompilerUtil::build(genFile, outFile);
     ASSERT_TRUE(buildOut.empty());
     ASSERT_FALSE(outFile.empty());
     ASSERT_TRUE(fs::exists(outFile));
+
+    std::string output = readPipe(outFile);
+    ASSERT_FALSE(output.empty());
+
+    tokenize(output, ' ', outData);
   }
 
-  template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
-  void verify(std::array<double, M * N * P>& refData, std::array<double, M * N * P>& testData,
-              const double eps = 10e-6) {
-    for(int n = 0; n < M * N * P; ++n) {
-      double diff = fabs(refData[n] - testData[n]);
-      ASSERT_LT(diff, eps) << "Test data does not match reference data at n=" << n;
+  template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned H = 3>
+  void verify(std::array<double, M * N * P>& refData, std::vector<double>& testData,
+              const double eps = 1e-6) {
+    unsigned n = 0;
+    for(int i = H; i < M - H; ++i) {
+      for(int j = H; j < N - H; ++j) {
+        for(int k = 0; k < P - 1; ++k) {
+          double diff = fabs(refData[k + (j + i * M) * N] - testData[n]);
+          ASSERT_LT(diff, eps) << "Test data does not match reference data at n=" << n;
+          n += 1;
+        }
+      }
     }
   }
 };
@@ -139,7 +161,7 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   auto instantiation = CompilerUtil::load(filename, options_, context_);
 
   const unsigned N = 12;
-  const unsigned halo = N / 4;
+  const unsigned halo = 3;
   const unsigned size = N * N * (N + 1);
 
   const int iMax = N - halo - 1;
@@ -147,13 +169,12 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   const int kMax = N - 1;
 
   std::array<double, size> inData;
-  std::array<double, size> outData;
   std::array<double, size> refData;
   std::array<double, size> tmpData;
+  std::vector<double> outData;
 
   // Initialize data
   fillMath<N, N, N + 1>(inData, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
-  fillValue<N, N, N + 1>(outData, -1.0);
   fillValue<N, N, N + 1>(refData, -1.0);
   fillValue<N, N, N + 1>(tmpData, 0.0);
 
@@ -178,7 +199,10 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   }
 
   // Run the generated code
-  runTest<N, N, N + 1>(instantiation, outData, {8.0, 2.0, 1.5, 1.5, 2.0, 4.0}, -1.0, "output/asymmetric.cpp");
+  runTest<N, N, N + 1>(instantiation, outData, halo, {8.0, 2.0, 1.5, 1.5, 2.0, 4.0}, -1.0,
+                       "output/asymmetric.cpp");
+
+  verify<N, N, N + 1, halo>(refData, outData);
 }
 
 TEST_F(TestCodeGenNaive, GlobalIndexStencil) {

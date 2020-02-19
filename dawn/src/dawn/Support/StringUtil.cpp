@@ -58,4 +58,20 @@ std::string indent(const std::string& string, int amount) {
   return oss.str();
 }
 
+void tokenize(const std::string& str, char delim, std::vector<std::string>& elems) {
+  std::string elem;
+  std::stringstream ss(str);
+  while(std::getline(ss, elem, delim)) {
+    elems.emplace_back(std::move(elem));
+  }
+}
+
+void tokenize(const std::string& str, char delim, std::vector<double>& elems) {
+  std::string elem;
+  std::stringstream ss(str);
+  while(std::getline(ss, elem, delim)) {
+    elems.emplace_back(std::stod(elem));
+  }
+}
+
 } // namespace dawn

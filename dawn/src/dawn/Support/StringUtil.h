@@ -128,6 +128,16 @@ extern std::string indent(const std::string& string, int amount = 2);
 /// @ingroup support
 extern std::string decimalToOrdinal(int dec);
 
+/// @brief Tokenize a string into a vector of strings
+///
+/// @ingroup support
+void tokenize(const std::string& str, char delim, std::vector<std::string>& elems);
+
+/// @brief Tokenize a string into a vector of doubles
+///
+/// @ingroup support
+void tokenize(const std::string& str, char delim, std::vector<double>& elems);
+
 /// @}
 
 } // namespace dawn
