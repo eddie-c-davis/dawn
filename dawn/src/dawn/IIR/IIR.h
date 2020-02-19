@@ -106,6 +106,8 @@ public:
   const sir::GlobalVariableMap& getGlobalVariableMap() const { return *globalVariableMap_; }
 
   void insertGlobalVariable(std::string&& varName, sir::Global&& value) {
+    if(globalVariableMap_->find(varName) != globalVariableMap_->end())
+      globalVariableMap_->erase(varName);
     globalVariableMap_->insert(std::pair(std::move(varName), std::move(value)));
   }
 

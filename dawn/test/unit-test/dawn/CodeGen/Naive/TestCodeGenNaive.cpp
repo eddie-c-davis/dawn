@@ -96,9 +96,12 @@ protected:
 
     // Add print function...
     ofs << "\nvoid print(const domain& dom, const gridtools::data_view<storage_ijk_t>& view) {\n";
-    ofs << "  for(int i = dom.iminus(); i < std::min(int(dom.isize() - dom.iplus()), view.total_length<0>()); ++i)\n";
-    ofs << "    for(int j = dom.jminus(); j < std::min(int(dom.jsize() - dom.jplus()), view.total_length<1>()); ++j)\n";
-    ofs << "      for(int k = dom.kminus(); k < std::min(int(dom.ksize() - dom.kplus()), view.total_length<2>()); ++k)\n";
+    ofs << "  for(int i = dom.iminus(); i < std::min(int(dom.isize() - dom.iplus()), "
+           "view.total_length<0>()); ++i)\n";
+    ofs << "    for(int j = dom.jminus(); j < std::min(int(dom.jsize() - dom.jplus()), "
+           "view.total_length<1>()); ++j)\n";
+    ofs << "      for(int k = dom.kminus(); k < std::min(int(dom.ksize() - dom.kplus()), "
+           "view.total_length<2>()); ++k)\n";
     ofs << "        std::cout << std::setprecision(9) << view(i, j, k) << ' ';\n";
     ofs << "}\n";
 
@@ -129,7 +132,7 @@ protected:
       outFile = outFile.substr(0, pos);
     }
 
-    std::string buildOut = CompilerUtil::build(genFile, outFile);
+    std::string buildOut = CompilerUtil::build(genFile, outFile, "g++", {"-g"});
     ASSERT_TRUE(buildOut.empty());
     ASSERT_FALSE(outFile.empty());
     ASSERT_TRUE(fs::exists(outFile));
@@ -137,6 +140,7 @@ protected:
     std::string output = readPipe(outFile);
     ASSERT_FALSE(output.empty());
 
+    // std::cerr << output << std::endl;
     tokenize(output, ' ', outData);
   }
 
@@ -201,6 +205,43 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   // Run the generated code
   runTest<N, N, N + 1>(instantiation, outData, halo, {8.0, 2.0, 1.5, 1.5, 2.0, 4.0}, -1.0,
                        "output/asymmetric.cpp");
+
+  verify<N, N, N + 1, halo>(refData, outData);
+}
+
+TEST_F(TestCodeGenNaive, ConditionalStencil) {
+  std::string filename = "input/conditional_stencil.iir";
+  auto instantiation = CompilerUtil::load(filename, options_, context_);
+
+  const unsigned N = 12;
+  const unsigned halo = 3;
+  const unsigned size = N * N * (N + 1);
+
+  std::array<double, size> inData;
+  std::array<double, size> refData;
+  std::vector<double> outData;
+
+  // Initialize data
+  fillMath<N, N, N + 1>(inData, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
+  fillValue<N, N, N + 1>(refData, -1.0);
+
+  // Populate reference data...
+  for(int k = 0; k <= N - 1; ++k) {
+    for(int i = halo; i <= N - halo - 1; ++i) {
+      for(int j = halo; j <= N - halo - 1; ++j) {
+        refData[k + (j + i * N) * N] = inData[k + ((j + 1) + i * N) * N];
+      }
+    }
+  }
+
+  // Per issue #724 (MeteoSwiss-APN/dawn/issues/724), globals are not
+  //   deserialized properly, so need to correct before running the test...
+  instantiation->getIIR()->insertGlobalVariable("var1", sir::Global(int(1)));
+  instantiation->getIIR()->insertGlobalVariable("var2", sir::Global(true));
+
+  // Run the generated code
+  runTest<N, N, N + 1>(instantiation, outData, halo, {8.0, 2.0, 1.5, 1.5, 2.0, 4.0}, -1.0,
+                       "output/conditional_stencil.cpp");
 
   verify<N, N, N + 1, halo>(refData, outData);
 }
