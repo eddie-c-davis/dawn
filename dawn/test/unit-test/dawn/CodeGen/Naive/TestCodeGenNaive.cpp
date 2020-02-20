@@ -28,7 +28,7 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
-#define ndx(i, j, k) (k) + ((j) + (i) * N) * N
+#define ndx(i, j, k) (k) + ((j) + (i)*N) * N
 
 using namespace dawn;
 
@@ -88,27 +88,7 @@ protected:
     }
   }
 
-  template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
-  void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               std::vector<std::vector<double>>& outData, const unsigned halo,
-               const std::vector<std::vector<double>>& inFillValues,
-               const double outFillValue,
-               const std::vector<std::string>& inputNames = {"in"},
-               const std::vector<std::string>& outputNames = {"out"},
-               const std::string& srcFile = "", const std::string& backend = "cxxnaive") {
-    std::string stencilName = instantiation->getMetaData().getStencilName();
-
-    std::string gen = CompilerUtil::generate(instantiation);
-    ASSERT_GT(gen.size(), 0);
-
-    std::string genFile = srcFile;
-    if(genFile.empty()) {
-      genFile = "output/" + stencilName + ".cpp";
-    }
-
-    // Create wrapper
-    std::ofstream ofs(genFile);
-    ofs << gen << std::endl;
+  void writeHeader(std::ofstream& ofs) {
     ofs << "#include \"driver-includes/verify.hpp\"\n";
     ofs << "#include <iostream>\n";
     ofs << "#include <iomanip>\n";
@@ -124,9 +104,12 @@ protected:
     ofs << "        std::cout << std::setprecision(9) << view(i, j, k) << ' ';\n";
     ofs << "  std::cout << std::endl;\n";
     ofs << "}\n";
-
-    // Add main function...
     ofs << "\nint main() {\n";
+  }
+
+  void writeVarDecls(unsigned M, unsigned N, unsigned P, unsigned halo,
+                     const std::vector<std::string>& inputNames,
+                     const std::vector<std::string>& outputNames, std::ofstream& ofs) {
     ofs << "  domain dom(" << M << ", " << N << ", " << P - 1 << ");\n";
     ofs << "  dom.set_halos(" << halo << ", " << halo << ", " << halo << ", " << halo
         << ", 0, 0);\n";
@@ -143,11 +126,15 @@ protected:
       delim = ',';
     }
     ofs << ";\n";
+  }
 
+  void writeFieldInits(const std::vector<std::vector<double>>& inFillValues,
+                       const double outFillValue, const std::vector<std::string>& inputNames,
+                       const std::vector<std::string>& outputNames, std::ofstream& ofs) {
     ofs << "  verifier verif(dom);\n";
+    char delim = '(';
     if(inFillValues.size() == 1) {
       ofs << "  verif.fillMath";
-      delim = '(';
       for(const double fillValue : inFillValues[0]) {
         ofs << delim << fillValue;
         delim = ',';
@@ -176,11 +163,15 @@ protected:
       ofs << delim << output;
     }
     ofs << ");\n";
+  }
 
+  void writeStencilCall(const std::string& backend, const std::string& stencilName,
+                        const std::vector<std::string>& inputNames,
+                        const std::vector<std::string>& outputNames, std::ofstream& ofs) {
     ofs << "  dawn_generated::" << backend << "::" << stencilName << " stencil(dom);\n";
     ofs << "  stencil.run";
 
-    delim = '(';
+    char delim = '(';
     for(const auto& input : inputNames) {
       ofs << delim << input;
       delim = ',';
@@ -195,6 +186,35 @@ protected:
       ofs << "  print(dom, make_host_view(" << output << "));\n";
     }
     ofs << "}\n";
+  }
+
+  template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
+  void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
+               std::vector<std::vector<double>>& outData, const unsigned halo,
+               const std::vector<std::vector<double>>& inFillValues, const double outFillValue,
+               const std::vector<std::string>& inputNames = {"in"},
+               const std::vector<std::string>& outputNames = {"out"},
+               const std::string& srcFile = "", const std::string& backend = "cxxnaive") {
+    std::string stencilName = instantiation->getMetaData().getStencilName();
+
+    std::string gen = CompilerUtil::generate(instantiation);
+    ASSERT_GT(gen.size(), 0);
+
+    std::string genFile = srcFile;
+    if(genFile.empty()) {
+      genFile = "output/" + stencilName + ".cpp";
+    }
+
+    // Create wrapper
+    std::ofstream ofs(genFile);
+    ofs << gen << std::endl;
+    writeHeader(ofs);
+
+    // Add main function...
+    writeVarDecls(M, N, P, halo, inputNames, outputNames, ofs);
+    writeFieldInits(inFillValues, outFillValue, inputNames, outputNames, ofs);
+    writeStencilCall(backend, stencilName, inputNames, outputNames, ofs);
+
     ofs.close();
 
     std::string outFile = genFile;
@@ -209,7 +229,7 @@ protected:
 
     std::string output = readPipe(outFile);
     ASSERT_FALSE(output.empty());
-    
+
     std::vector<std::string> lines;
     tokenize(output, '\n', lines);
     for(int i = 0; i < outData.size(); ++i) {
@@ -260,18 +280,16 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   int k = 0;
   for(int i = halo; i <= iMax; ++i) {
     for(int j = halo; j <= jMax; ++j) {
-      tmpData[k + (j + i * N) * N] =
-          inData[k + (j + (i + 1) * N) * N] + inData[k + ((j - 2) + i * N) * N];
-      refData[k + (j + i * N) * N] = 1;
+      tmpData[ndx(i, j, k)] = inData[ndx(i + 1, j, k)] + inData[ndx(i, j - 2, k)];
+      refData[ndx(i, j, k)] = 1;
     }
   }
 
   for(k = 1; k <= kMax; ++k) {
     for(int i = halo; i <= iMax; ++i) {
       for(int j = halo; j <= jMax; ++j) {
-        tmpData[k + (j + i * N) * N] =
-            inData[k + (j + (i - 3) * N) * N] + inData[k + ((j + 1) + i * N) * N];
-        refData[k + (j + i * N) * N] = tmpData[(k - 1) + (j + i * N) * N];
+        tmpData[ndx(i, j, k)] = inData[ndx(i - 3, j, k)] + inData[ndx(i, j + 1, k)];
+        refData[ndx(i, j, k)] = tmpData[ndx(i, j, k - 1)];
       }
     }
   }
@@ -304,7 +322,7 @@ TEST_F(TestCodeGenNaive, ConditionalStencil) {
   for(int k = 0; k <= N - 1; ++k) {
     for(int i = halo; i <= N - halo - 1; ++i) {
       for(int j = halo; j <= N - halo - 1; ++j) {
-        refData[k + (j + i * N) * N] = inData[k + ((j + 1) + i * N) * N];
+        refData[ndx(i, j, k)] = inData[ndx(i, j + 1, k)];
       }
     }
   }
@@ -345,13 +363,11 @@ TEST_F(TestCodeGenNaive, CoriolisStencil) {
   for(int k = 0; k <= N - 1; ++k) {
     for(int i = halo; i <= N - halo - 1; ++i) {
       for(int j = halo; j <= N - halo - 1; ++j) {
-        double z_fv_north =
-            (fc[ndx(i, j, k)] * (v_nnow[ndx(i, j, k)] + v_nnow[ndx(i + 1, j, k)]));
+        double z_fv_north = (fc[ndx(i, j, k)] * (v_nnow[ndx(i, j, k)] + v_nnow[ndx(i + 1, j, k)]));
         double z_fv_south =
             fc[ndx(i, j - 1, k)] * (v_nnow[ndx(i, j - 1, k)] + v_nnow[ndx(i + 1, j - 1, k)]);
         u_ref[ndx(i, j, k)] += 0.25 * (z_fv_north + z_fv_south);
-        double z_fu_east =
-            fc[ndx(i, j, k)] * (u_nnow[ndx(i, j, k)] + u_nnow[ndx(i, j + 1, k)]);
+        double z_fu_east = fc[ndx(i, j, k)] * (u_nnow[ndx(i, j, k)] + u_nnow[ndx(i, j + 1, k)]);
         double z_fu_west =
             (fc[ndx(i - 1, j, k)] * (u_nnow[ndx(i - 1, j, k)] + u_nnow[ndx(i - 1, j + 1, k)]));
         v_ref[ndx(i, j, k)] -= 0.25 * (z_fu_east + z_fu_west);
@@ -359,16 +375,16 @@ TEST_F(TestCodeGenNaive, CoriolisStencil) {
     }
   }
 
-
   // Run the generated code
-  runTest<N, N, N + 1>(instantiation, outData, halo, {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0},
-                                                     {5.0, 1.2, 1.3, 1.7, 2.2, 3.5},
-                                                     {2.0, 1.3, 1.4, 1.6, 2.1, 3.0}}, -1.0,
-                       {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"});
+  runTest<N, N, N + 1>(instantiation, outData, halo,
+                       {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0},
+                        {5.0, 1.2, 1.3, 1.7, 2.2, 3.5},
+                        {2.0, 1.3, 1.4, 1.6, 2.1, 3.0}},
+                       -1.0, {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"});
 
   // Verify data
-  verify<N, N, N + 1, halo>(u_ref, u_tens);
-  verify<N, N, N + 1, halo>(v_ref, v_tens);
+  verify<N, N, N + 1, halo>(u_ref, outData[0]);
+  verify<N, N, N + 1, halo>(v_ref, outData[1]);
 }
 
 TEST_F(TestCodeGenNaive, GlobalIndexStencil) {
