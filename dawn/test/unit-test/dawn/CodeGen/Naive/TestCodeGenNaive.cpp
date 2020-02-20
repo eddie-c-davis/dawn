@@ -474,3 +474,4 @@ TEST_F(TestCodeGenNaive, LaplacianStencil) {
 }
 
 } // anonymous namespace
+

@@ -22,7 +22,7 @@
 #include "dawn/Optimizer/PassFieldVersioning.h"
 #include "dawn/Optimizer/PassFixVersionedInputFields.h"
 #include "dawn/Optimizer/PassInlining.h"
-#include "dawn/Optimizer/PassIntervalPartitioner.h"
+#include "dawn/Optimizer/PassIntervalPartitioning.h"
 #include "dawn/Optimizer/PassMultiStageSplitter.h"
 #include "dawn/Optimizer/PassPrintStencilGraph.h"
 #include "dawn/Optimizer/PassSSA.h"
@@ -93,7 +93,8 @@ CompilerUtil::lower(const std::string& sirFilename,
 stencilInstantiationContext CompilerUtil::compile(const std::shared_ptr<SIR>& sir) {
   dawn::Options options;
   DawnCompiler compiler(options);
-  auto optimizer = compiler.runOptimizer(sir);
+
+  auto SI = compiler.optimize(compiler.lowerToIIR(sir));
 
   if(compiler.getDiagnostics().hasDiags()) {
     for(const auto& diag : compiler.getDiagnostics().getQueue()) {
@@ -102,7 +103,7 @@ stencilInstantiationContext CompilerUtil::compile(const std::shared_ptr<SIR>& si
     throw std::runtime_error("Compilation failed");
   }
 
-  return optimizer->getStencilInstantiationMap();
+  return SI;
 }
 
 stencilInstantiationContext CompilerUtil::compile(const std::string& sirFile) {
@@ -260,7 +261,7 @@ CompilerUtil::createGroup(PassGroup group, std::unique_ptr<OptimizerContext>& co
     break;
 
   case PassGroup::PartitionIntervals:
-    addPass<dawn::PassIntervalPartitioner>(context, passes);
+    addPass<dawn::PassIntervalPartitioning>(context, passes);
     // since this can change the scope of temporaries ...
     addPass<dawn::PassTemporaryType>(context, passes);
     break;
@@ -334,7 +335,7 @@ bool CompilerUtil::runPasses(std::unique_ptr<OptimizerContext>& context,
   if(nPasses > 13)
     result &= runPass<dawn::PassInlining>(context, instantiation, false, inlineOnTheFly);
   if(nPasses > 14)
-    result &= runPass<dawn::PassIntervalPartitioner>(context, instantiation);
+    result &= runPass<dawn::PassIntervalPartitioning>(context, instantiation);
   if(nPasses > 15)
     result &= runPass<dawn::PassTemporaryToStencilFunction>(context, instantiation);
   if(nPasses > 16)
@@ -409,7 +410,7 @@ bool CompilerUtil::runGroup(PassGroup group, std::unique_ptr<OptimizerContext>& 
     break;
 
   case PassGroup::PartitionIntervals:
-    result &= runPass<dawn::PassIntervalPartitioner>(context, instantiation);
+    result &= runPass<dawn::PassIntervalPartitioning>(context, instantiation);
     result &= runPass<dawn::PassTemporaryType>(context, instantiation);
     break;
 
