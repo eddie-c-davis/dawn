@@ -28,6 +28,8 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
+#define ndx(i, j, k) (k) + ((j) + (i) * N) * N
+
 using namespace dawn;
 
 namespace {
@@ -57,13 +59,20 @@ protected:
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
-  void fillValue(std::array<double, M * N * P>& data, double val = 0.0) {
+  void fillValue(std::array<double, M * N * P>& storage, double val = 0.0) {
     for(int i = 0; i < M; ++i) {
       for(int j = 0; j < N; ++j) {
         for(int k = 0; k < P; ++k) {
-          data[k + (j + i * M) * N] = val;
+          storage[k + (j + i * M) * N] = val;
         }
       }
+    }
+  }
+
+  template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
+  void fillValue(std::vector<std::array<double, M * N * P>>& storages, double val = 0.0) {
+    for(const auto& storage : storages) {
+      fillValue<M, N, P, D>(storage, val);
     }
   }
 
@@ -81,11 +90,21 @@ protected:
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               std::vector<double>& outData, const unsigned halo,
-               const std::vector<double>& inFillValues, const double outFillValue,
-               const std::string& genFile = "", const std::string& backend = "cxxnaive") {
-    std::string gen = CompilerUtil::generate(instantiation, genFile);
+               std::vector<std::vector<double>>& outData, const unsigned halo,
+               const std::vector<std::vector<double>>& inFillValues,
+               const double outFillValue,
+               const std::vector<std::string>& inputNames = {"in"},
+               const std::vector<std::string>& outputNames = {"out"},
+               const std::string& srcFile = "", const std::string& backend = "cxxnaive") {
+    std::string stencilName = instantiation->getMetaData().getStencilName();
+
+    std::string gen = CompilerUtil::generate(instantiation);
     ASSERT_GT(gen.size(), 0);
+
+    std::string genFile = srcFile;
+    if(genFile.empty()) {
+      genFile = "output/" + stencilName + ".cpp";
+    }
 
     // Create wrapper
     std::ofstream ofs(genFile);
@@ -103,6 +122,7 @@ protected:
     ofs << "      for(int k = dom.kminus(); k < std::min(int(dom.ksize() - dom.kplus()), "
            "view.total_length<2>()); ++k)\n";
     ofs << "        std::cout << std::setprecision(9) << view(i, j, k) << ' ';\n";
+    ofs << "  std::cout << std::endl;\n";
     ofs << "}\n";
 
     // Add main function...
@@ -111,18 +131,69 @@ protected:
     ofs << "  dom.set_halos(" << halo << ", " << halo << ", " << halo << ", " << halo
         << ", 0, 0);\n";
     ofs << "  meta_data_t meta(" << M << ", " << N << ", " << P << ");\n";
-    ofs << "  storage_t in(meta, \"in\"), out(meta, \"out\");\n";
-    ofs << "  verifier verif(dom);\n";
-    ofs << "  verif.fillMath("; // 8.0, 2.0, 1.5, 1.5, 2.0, 4.0, in);\n";
-    for(const double fillValue : inFillValues) {
-      ofs << fillValue << ", ";
+    ofs << "  storage_t";
+
+    char delim = ' ';
+    for(const auto& input : inputNames) {
+      ofs << delim << input << "(meta, \"" << input << "\")";
+      delim = ',';
     }
-    ofs << "in);\n";
-    ofs << "  verif.fill(" << outFillValue << ", out);\n";
-    ofs << "  dawn_generated::" << backend << "::" << instantiation->getMetaData().getStencilName()
-        << " stencil(dom);\n";
-    ofs << "  stencil.run(in, out);\n";
-    ofs << "  print(dom, make_host_view(out));\n";
+    for(const auto& output : outputNames) {
+      ofs << delim << output << "(meta, \"" << output << "\")";
+      delim = ',';
+    }
+    ofs << ";\n";
+
+    ofs << "  verifier verif(dom);\n";
+    if(inFillValues.size() == 1) {
+      ofs << "  verif.fillMath";
+      delim = '(';
+      for(const double fillValue : inFillValues[0]) {
+        ofs << delim << fillValue;
+        delim = ',';
+      }
+      for(const auto& input : inputNames) {
+        ofs << delim << input;
+      }
+      ofs << ");\n";
+    } else {
+      unsigned n = 0;
+      for(const auto& fillValues : inFillValues) {
+        ofs << "  verif.fillMath";
+        delim = '(';
+        for(const double fillValue : fillValues) {
+          ofs << delim << fillValue;
+          delim = ',';
+        }
+        ofs << delim << inputNames[n] << ");\n";
+        n += 1;
+      }
+    }
+
+    ofs << "  verif.fill(" << outFillValue;
+    delim = ',';
+    for(const auto& output : outputNames) {
+      ofs << delim << output;
+    }
+    ofs << ");\n";
+
+    ofs << "  dawn_generated::" << backend << "::" << stencilName << " stencil(dom);\n";
+    ofs << "  stencil.run";
+
+    delim = '(';
+    for(const auto& input : inputNames) {
+      ofs << delim << input;
+      delim = ',';
+    }
+    for(const auto& output : outputNames) {
+      ofs << delim << output;
+      delim = ',';
+    }
+    ofs << ");\n";
+
+    for(const auto& output : outputNames) {
+      ofs << "  print(dom, make_host_view(" << output << "));\n";
+    }
     ofs << "}\n";
     ofs.close();
 
@@ -134,14 +205,16 @@ protected:
 
     std::string buildOut = CompilerUtil::build(genFile, outFile, "g++", {"-g"});
     ASSERT_TRUE(buildOut.empty());
-    ASSERT_FALSE(outFile.empty());
     ASSERT_TRUE(fs::exists(outFile));
 
     std::string output = readPipe(outFile);
     ASSERT_FALSE(output.empty());
-
-    // std::cerr << output << std::endl;
-    tokenize(output, ' ', outData);
+    
+    std::vector<std::string> lines;
+    tokenize(output, '\n', lines);
+    for(int i = 0; i < outData.size(); ++i) {
+      tokenize(lines[i], ' ', outData[i]);
+    }
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned H = 3>
@@ -175,7 +248,8 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   std::array<double, size> inData;
   std::array<double, size> refData;
   std::array<double, size> tmpData;
-  std::vector<double> outData;
+  std::vector<double> out;
+  std::vector<std::vector<double>> outData = {out};
 
   // Initialize data
   fillMath<N, N, N + 1>(inData, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
@@ -203,10 +277,10 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   }
 
   // Run the generated code
-  runTest<N, N, N + 1>(instantiation, outData, halo, {8.0, 2.0, 1.5, 1.5, 2.0, 4.0}, -1.0,
-                       "output/asymmetric.cpp");
+  runTest<N, N, N + 1>(instantiation, outData, halo, {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0}}, -1.0);
 
-  verify<N, N, N + 1, halo>(refData, outData);
+  // Verify data
+  verify<N, N, N + 1, halo>(refData, outData[0]);
 }
 
 TEST_F(TestCodeGenNaive, ConditionalStencil) {
@@ -219,7 +293,8 @@ TEST_F(TestCodeGenNaive, ConditionalStencil) {
 
   std::array<double, size> inData;
   std::array<double, size> refData;
-  std::vector<double> outData;
+  std::vector<double> out;
+  std::vector<std::vector<double>> outData = {out};
 
   // Initialize data
   fillMath<N, N, N + 1>(inData, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
@@ -240,10 +315,60 @@ TEST_F(TestCodeGenNaive, ConditionalStencil) {
   instantiation->getIIR()->insertGlobalVariable("var2", sir::Global(true));
 
   // Run the generated code
-  runTest<N, N, N + 1>(instantiation, outData, halo, {8.0, 2.0, 1.5, 1.5, 2.0, 4.0}, -1.0,
-                       "output/conditional_stencil.cpp");
+  runTest<N, N, N + 1>(instantiation, outData, halo, {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0}}, -1.0);
 
-  verify<N, N, N + 1, halo>(refData, outData);
+  // Verify data
+  verify<N, N, N + 1, halo>(refData, outData[0]);
+}
+
+TEST_F(TestCodeGenNaive, CoriolisStencil) {
+  std::string filename = "input/coriolis_stencil.iir";
+  auto instantiation = CompilerUtil::load(filename, options_, context_);
+
+  const unsigned N = 12;
+  const unsigned halo = 3;
+  const unsigned size = N * N * (N + 1);
+
+  std::array<double, size> u_nnow, v_nnow, fc;
+  std::array<double, size> u_ref, v_ref;
+  std::vector<double> u_tens, v_tens;
+  std::vector<std::vector<double>> outData = {u_tens, v_tens};
+
+  // Initialize data
+  fillValue<N, N, N + 1>(u_ref, -1.0);
+  fillValue<N, N, N + 1>(v_ref, -1.0);
+  fillMath<N, N, N + 1>(u_nnow, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
+  fillMath<N, N, N + 1>(v_nnow, 5.0, 1.2, 1.3, 1.7, 2.2, 3.5);
+  fillMath<N, N, N + 1>(fc, 2.0, 1.3, 1.4, 1.6, 2.1, 3.0);
+
+  // Populate reference data...
+  for(int k = 0; k <= N - 1; ++k) {
+    for(int i = halo; i <= N - halo - 1; ++i) {
+      for(int j = halo; j <= N - halo - 1; ++j) {
+        double z_fv_north =
+            (fc[ndx(i, j, k)] * (v_nnow[ndx(i, j, k)] + v_nnow[ndx(i + 1, j, k)]));
+        double z_fv_south =
+            fc[ndx(i, j - 1, k)] * (v_nnow[ndx(i, j - 1, k)] + v_nnow[ndx(i + 1, j - 1, k)]);
+        u_ref[ndx(i, j, k)] += 0.25 * (z_fv_north + z_fv_south);
+        double z_fu_east =
+            fc[ndx(i, j, k)] * (u_nnow[ndx(i, j, k)] + u_nnow[ndx(i, j + 1, k)]);
+        double z_fu_west =
+            (fc[ndx(i - 1, j, k)] * (u_nnow[ndx(i - 1, j, k)] + u_nnow[ndx(i - 1, j + 1, k)]));
+        v_ref[ndx(i, j, k)] -= 0.25 * (z_fu_east + z_fu_west);
+      }
+    }
+  }
+
+
+  // Run the generated code
+  runTest<N, N, N + 1>(instantiation, outData, halo, {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0},
+                                                     {5.0, 1.2, 1.3, 1.7, 2.2, 3.5},
+                                                     {2.0, 1.3, 1.4, 1.6, 2.1, 3.0}}, -1.0,
+                       {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"});
+
+  // Verify data
+  verify<N, N, N + 1, halo>(u_ref, u_tens);
+  verify<N, N, N + 1, halo>(v_ref, v_tens);
 }
 
 TEST_F(TestCodeGenNaive, GlobalIndexStencil) {
