@@ -117,6 +117,7 @@ public:
 #include "driver-includes/verify.hpp"
 #include <iostream>
 #include <iomanip>
+#include <omp.h>
 
 void print(const domain& dom, const gridtools::data_view<storage_ijk_t>& view) {
   for(int i = dom.iminus(); i < std::min(int(dom.isize() - dom.iplus()), view.total_length<0>()); ++i)
@@ -126,18 +127,35 @@ void print(const domain& dom, const gridtools::data_view<storage_ijk_t>& view) {
   std::cout << std::endl;
 }
 
-int main() {
-  domain dom(12, 12, 12);
-  dom.set_halos(3, 3, 3, 3, 0, 0);
-  meta_data_t meta(12, 12, 13);
+int main(int argc, const char** argv) {
+  int isize = atoi(argv[1]);
+  int jsize = isize;
+  int ksize = atoi(argv[2]);
+  int halo = 3;
+  domain dom(isize, jsize, ksize);
+  dom.set_halos(halo, halo, halo, halo, 0, 0);
+  meta_data_t meta(isize, jsize, ksize + 1);
   storage_t u_nnow(meta, "u_nnow"),v_nnow(meta, "v_nnow"),fc(meta, "fc"),u_tens(meta, "u_tens"),v_tens(meta, "v_tens");
+
+//  #pragma omp parallel
+//  {
+//    nthreads = omp_get_num_threads();
+//  }
+//  printf("nthreads=%d\n", nthreads);
+
+
   verifier verif(dom);
   verif.fillMath(8,2,1.5,1.5,2,4,u_nnow);
   verif.fillMath(5,1.2,1.3,1.7,2.2,3.5,v_nnow);
   verif.fillMath(2,1.3,1.4,1.6,2.1,3,fc);
   verif.fill(-1,u_tens,v_tens);
+
   dawn_generated::cxxnaive::coriolis_stencil stencil(dom);
+  float time = omp_get_wtime();
   stencil.run(u_nnow,v_nnow,fc,u_tens,v_tens);
-  print(dom, make_host_view(u_tens));
-  print(dom, make_host_view(v_tens));
+  time = omp_get_wtime() - time;
+  std::cerr << "omp_time = " << std::setprecision(9) << time  << std::endl;
+
+//  print(dom, make_host_view(u_tens));
+//  print(dom, make_host_view(v_tens));
 }
