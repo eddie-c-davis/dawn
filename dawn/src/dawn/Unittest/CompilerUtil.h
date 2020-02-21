@@ -77,7 +77,7 @@ public:
                               const std::string& srcFile = "", const bool writeStdout = false);
 
   static std::string build(const std::string& srcFile, std::string& outFile,
-                           const std::string& compiler = "g++",
+                           const std::string& compiler = compiler_,
                            const std::vector<std::string>& args = {});
 
   template <class TPass, typename... Args>
@@ -115,9 +115,18 @@ public:
 
   static void setPath(const std::string& rootPath = "");
 
+  static void setCompiler(const std::string& compiler = "g++");
+
+  static void setSourceDir(const std::string& sourceDir = ".");
+
+  static void setBuildDir(const std::string& buildDir = ".");
+
 private:
   static dawn::DiagnosticsEngine diag_;
   static std::string rootPath_;
+  static std::string compiler_;
+  static std::string sourceDir_;
+  static std::string buildDir_;
 };
 
 } // namespace dawn

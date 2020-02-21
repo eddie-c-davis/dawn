@@ -50,6 +50,12 @@ dawn::DiagnosticsEngine CompilerUtil::diag_;
 
 std::string CompilerUtil::rootPath_;
 
+std::string CompilerUtil::compiler_;
+
+std::string CompilerUtil::sourceDir_;
+
+std::string CompilerUtil::buildDir_;
+
 std::shared_ptr<SIR> CompilerUtil::load(const std::string& sirFilename) {
   std::string sirPath = sirFilename;
   if(!fs::exists(sirPath) && !rootPath_.empty())
@@ -61,17 +67,19 @@ std::shared_ptr<iir::StencilInstantiation>
 CompilerUtil::load(const std::string& irFilename,
                    const dawn::OptimizerContext::OptimizerContextOptions& options,
                    std::unique_ptr<OptimizerContext>& context, const std::string& envPath) {
-  std::string filename = irFilename;
-  if(!envPath.empty() && filename.at(0) != '/')
-    filename = envPath + "/" + filename;
+  std::string irPath = irFilename;
+  if(!envPath.empty() && irPath.at(0) != '/')
+    irPath = envPath + "/" + irPath;
+  if(!fs::exists(irPath) && !rootPath_.empty())
+    irPath = rootPath_ + "/" + irPath;
 
-  if(filename.find(".sir") != std::string::npos) {
-    stencilInstantiationContext siMap = lower(filename, options, context, envPath);
+  if(irPath.find(".sir") != std::string::npos) {
+    stencilInstantiationContext siMap = lower(irPath, options, context, envPath);
     return siMap.begin()->second;
   } else {
     std::shared_ptr<SIR> sir = std::make_shared<SIR>(ast::GridType::Cartesian);
     context = std::make_unique<OptimizerContext>(diag_, options, sir);
-    return IIRSerializer::deserialize(filename);
+    return IIRSerializer::deserialize(irPath);
   }
 }
 
@@ -189,15 +197,15 @@ std::string CompilerUtil::generate(std::shared_ptr<iir::StencilInstantiation>& s
 
 std::string CompilerUtil::build(const std::string& srcFile, std::string& outFile,
                                 const std::string& compiler, const std::vector<std::string>& args) {
-  std::vector<std::string> includes;
-  includes.push_back("../../../../../src");
-  includes.push_back("../../../../../../gtclang");
-  includes.push_back("../../../../../../gtclang/src");
-  includes.push_back("../../../../../../build/_deps/gridtools-src/include");
+  std::vector<std::string> includeDirs;
+  includeDirs.push_back(sourceDir_ + "/dawn/src");
+  includeDirs.push_back(sourceDir_ + "/gtclang");
+  includeDirs.push_back(sourceDir_ + "/gtclang/src");
+  includeDirs.push_back(buildDir_ + "/_deps/gridtools-src/include");
 
   std::string compileCmd = compiler + " " + srcFile;
-  for(const std::string& include : includes) {
-    compileCmd += " -I" + include;
+  for(const std::string& includeDir : includeDirs) {
+    compileCmd += " -I" + includeDir;
   }
 
   for(const std::string& arg : args) {
@@ -229,7 +237,7 @@ CompilerUtil::createGroup(PassGroup group, std::unique_ptr<OptimizerContext>& co
   case PassGroup::Parallel:
     addPass<dawn::PassInlining>(context, passes, true, inlineStrategy);
     addPass<dawn::PassFieldVersioning>(context, passes);
-    addPass<dawn::PassSSA>(context, passes); // Did I do this for a reason?
+    addPass<dawn::PassSSA>(context, passes);
     addPass<dawn::PassMultiStageSplitter>(context, passes, mssSplitStrategy);
     addPass<dawn::PassStageSplitter>(context, passes);
     addPass<dawn::PassTemporaryType>(context, passes);
@@ -477,5 +485,17 @@ void CompilerUtil::write(std::unique_ptr<OptimizerContext>& context, const unsig
 }
 
 void CompilerUtil::setPath(const std::string& rootPath) { rootPath_ = rootPath; }
+
+void CompilerUtil::setCompiler(const std::string& compiler) {
+  compiler_ = compiler;
+}
+
+void CompilerUtil::setSourceDir(const std::string& sourceDir) {
+  sourceDir_ = sourceDir;
+}
+
+void CompilerUtil::setBuildDir(const std::string& buildDir) {
+  buildDir_ = buildDir;
+}
 
 } // namespace dawn

@@ -76,18 +76,6 @@ protected:
     }
   }
 
-  void genTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               const std::string& ref_file = "") {
-    // Expect codegen to succeed...
-    std::string gen = CompilerUtil::generate(instantiation);
-    ASSERT_GT(gen.size(), 0);
-
-    if(!ref_file.empty()) {
-      std::string ref = dawn::readFile(ref_file);
-      ASSERT_EQ(gen, ref) << "Generated code does not match reference code";
-    }
-  }
-
   void writeHeader(std::ofstream& ofs) {
     ofs << "#include \"driver-includes/verify.hpp\"\n";
     ofs << "#include <iostream>\n";
@@ -188,6 +176,18 @@ protected:
     ofs << "}\n";
   }
 
+  void genTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
+               const std::string& ref_file = "") {
+    // Expect codegen to succeed...
+    std::string gen = CompilerUtil::generate(instantiation);
+    ASSERT_GT(gen.size(), 0);
+
+    if(!ref_file.empty()) {
+      std::string ref = dawn::readFile(ref_file);
+      ASSERT_EQ(gen, ref) << "Generated code does not match reference code";
+    }
+  }
+
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
                std::vector<std::vector<double>>& outData, const unsigned halo,
@@ -202,7 +202,7 @@ protected:
 
     std::string genFile = srcFile;
     if(genFile.empty()) {
-      genFile = "output/" + stencilName + ".cpp";
+      genFile = fs::temp_directory_path().string() + "/" + stencilName + ".cpp";
     }
 
     // Create wrapper
