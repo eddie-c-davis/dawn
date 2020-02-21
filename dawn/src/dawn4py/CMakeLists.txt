@@ -62,6 +62,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(pybind11 INTERFACE -fsized-deallocation)
 endif()
 
+include_directories(/usr/include/python3)
 pybind11_add_module(_dawn4py MODULE _dawn4py.cpp)
 target_compile_features(_dawn4py PUBLIC cxx_std_17)
 target_link_libraries(_dawn4py PUBLIC pybind11::pybind11 Dawn)
