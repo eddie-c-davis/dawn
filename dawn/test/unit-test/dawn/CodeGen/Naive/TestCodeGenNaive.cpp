@@ -190,7 +190,7 @@ protected:
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               std::vector<std::vector<double>>& outData, const unsigned halo,
+               std::unordered_map<std::string, std::vector<double>>& outData, const unsigned halo,
                const std::vector<std::vector<double>>& inFillValues, const double outFillValue,
                const std::vector<std::string>& inputNames = {"in"},
                const std::vector<std::string>& outputNames = {"out"},
@@ -223,7 +223,7 @@ protected:
       outFile = outFile.substr(0, pos);
     }
 
-    std::string buildOut = CompilerUtil::build(genFile, outFile, "g++", {"-g"});
+    std::string buildOut = CompilerUtil::build(genFile, outFile);
     ASSERT_TRUE(buildOut.empty());
     ASSERT_TRUE(fs::exists(outFile));
 
@@ -232,8 +232,8 @@ protected:
 
     std::vector<std::string> lines;
     tokenize(output, '\n', lines);
-    for(int i = 0; i < outData.size(); ++i) {
-      tokenize(lines[i], ' ', outData[i]);
+    for(int i = 0; i < outputNames.size(); ++i) {
+      tokenize(lines[i], ' ', outData[outputNames[i]]);
     }
   }
 
@@ -268,8 +268,7 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   std::array<double, size> inData;
   std::array<double, size> refData;
   std::array<double, size> tmpData;
-  std::vector<double> out;
-  std::vector<std::vector<double>> outData = {out};
+  std::unordered_map<std::string, std::vector<double>> outData({{"out", std::vector<double>()}});
 
   // Initialize data
   fillMath<N, N, N + 1>(inData, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
@@ -298,7 +297,7 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   runTest<N, N, N + 1>(instantiation, outData, halo, {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0}}, -1.0);
 
   // Verify data
-  verify<N, N, N + 1, halo>(refData, outData[0]);
+  verify<N, N, N + 1, halo>(refData, outData["out"]);
 }
 
 TEST_F(TestCodeGenNaive, ConditionalStencil) {
@@ -311,8 +310,7 @@ TEST_F(TestCodeGenNaive, ConditionalStencil) {
 
   std::array<double, size> inData;
   std::array<double, size> refData;
-  std::vector<double> out;
-  std::vector<std::vector<double>> outData = {out};
+  std::unordered_map<std::string, std::vector<double>> outData({{"out", std::vector<double>()}});
 
   // Initialize data
   fillMath<N, N, N + 1>(inData, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
@@ -336,7 +334,7 @@ TEST_F(TestCodeGenNaive, ConditionalStencil) {
   runTest<N, N, N + 1>(instantiation, outData, halo, {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0}}, -1.0);
 
   // Verify data
-  verify<N, N, N + 1, halo>(refData, outData[0]);
+  verify<N, N, N + 1, halo>(refData, outData["out"]);
 }
 
 TEST_F(TestCodeGenNaive, CoriolisStencil) {
@@ -350,7 +348,8 @@ TEST_F(TestCodeGenNaive, CoriolisStencil) {
   std::array<double, size> u_nnow, v_nnow, fc;
   std::array<double, size> u_ref, v_ref;
   std::vector<double> u_tens, v_tens;
-  std::vector<std::vector<double>> outData = {u_tens, v_tens};
+  std::unordered_map<std::string, std::vector<double>> outData(
+      {{"u_tens", u_tens}, {"v_tens", v_tens}});
 
   // Initialize data
   fillValue<N, N, N + 1>(u_ref, -1.0);
@@ -383,8 +382,8 @@ TEST_F(TestCodeGenNaive, CoriolisStencil) {
                        -1.0, {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"});
 
   // Verify data
-  verify<N, N, N + 1, halo>(u_ref, outData[0]);
-  verify<N, N, N + 1, halo>(v_ref, outData[1]);
+  verify<N, N, N + 1, halo>(u_ref, outData["u_tens"]);
+  verify<N, N, N + 1, halo>(v_ref, outData["v_tens"]);
 }
 
 TEST_F(TestCodeGenNaive, GlobalIndexStencil) {
@@ -474,4 +473,3 @@ TEST_F(TestCodeGenNaive, LaplacianStencil) {
 }
 
 } // anonymous namespace
-

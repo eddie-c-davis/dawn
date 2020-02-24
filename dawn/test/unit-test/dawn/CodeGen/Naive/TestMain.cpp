@@ -22,7 +22,6 @@ int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
 
   if(argc > 1) {
-    DAWN_ASSERT_MSG((argc > 1), "wrong number of arguments");
     dawn::CompilerUtil::setPath(argv[1]);
     if(argc > 2)
       dawn::CompilerUtil::setCompiler(argv[2]);

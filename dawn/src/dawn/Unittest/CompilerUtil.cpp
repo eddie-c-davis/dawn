@@ -48,13 +48,13 @@ bool CompilerUtil::Verbose;
 
 dawn::DiagnosticsEngine CompilerUtil::diag_;
 
+std::string CompilerUtil::compiler_ = "c++";
+
 std::string CompilerUtil::rootPath_;
 
-std::string CompilerUtil::compiler_;
+std::string CompilerUtil::sourceDir_ = ".";
 
-std::string CompilerUtil::sourceDir_;
-
-std::string CompilerUtil::buildDir_;
+std::string CompilerUtil::buildDir_ = ".";
 
 std::shared_ptr<SIR> CompilerUtil::load(const std::string& sirFilename) {
   std::string sirPath = sirFilename;
@@ -107,7 +107,7 @@ stencilInstantiationContext CompilerUtil::compile(const std::shared_ptr<SIR>& si
   dawn::Options options;
   DawnCompiler compiler(options);
 
-  auto SI = compiler.optimize(compiler.lowerToIIR(sir));
+  auto instance = compiler.optimize(compiler.lowerToIIR(sir));
 
   if(compiler.getDiagnostics().hasDiags()) {
     for(const auto& diag : compiler.getDiagnostics().getQueue()) {
@@ -116,7 +116,7 @@ stencilInstantiationContext CompilerUtil::compile(const std::shared_ptr<SIR>& si
     throw std::runtime_error("Compilation failed");
   }
 
-  return SI;
+  return instance;
 }
 
 stencilInstantiationContext CompilerUtil::compile(const std::string& sirFile) {

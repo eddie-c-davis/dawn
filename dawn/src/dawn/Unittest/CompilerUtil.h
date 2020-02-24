@@ -78,7 +78,7 @@ public:
 
   static std::string build(const std::string& srcFile, std::string& outFile,
                            const std::string& compiler = compiler_,
-                           const std::vector<std::string>& args = {});
+                           const std::vector<std::string>& args = {"-g"});
 
   template <class TPass, typename... Args>
   static void addPass(std::unique_ptr<OptimizerContext>& context,
@@ -115,7 +115,7 @@ public:
 
   static void setPath(const std::string& rootPath = "");
 
-  static void setCompiler(const std::string& compiler = "g++");
+  static void setCompiler(const std::string& compiler = "c++");
 
   static void setSourceDir(const std::string& sourceDir = ".");
 
