@@ -11,6 +11,14 @@
 ##  See LICENSE.txt for details.
 ##
 ##===------------------------------------------------------------------------------------------===##
+include(GoogleTest)
 
-add_subdirectory(Cuda)
-add_subdirectory(Naive)
+set(executable ${PROJECT_NAME}UnittestCodeGen)
+add_executable(${executable} TestCodeGen.cpp TestMain.cpp)
+target_add_dawn_standard_props(${executable})
+target_link_libraries(${executable} DawnOptimizer DawnCompiler DawnSupport DawnUnittest gtest)
+file(COPY input DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY reference DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+gtest_discover_tests(${executable} TEST_PREFIX "Dawn::Unit::CodeGen::"
+  EXTRA_ARGS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CXX_COMPILER} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}
+  DISCOVERY_TIMEOUT 30)

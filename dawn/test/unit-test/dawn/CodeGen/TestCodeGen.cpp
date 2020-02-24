@@ -34,12 +34,32 @@ using namespace dawn;
 
 namespace {
 
-class TestCodeGenNaive : public ::testing::Test {
+class TestCodeGen : public ::testing::Test {
 protected:
   dawn::OptimizerContext::OptimizerContextOptions options_;
   std::unique_ptr<OptimizerContext> context_;
 
   virtual void SetUp() { dawn::UIDGenerator::getInstance()->reset(); }
+
+  std::shared_ptr<iir::StencilInstantiation> buildGlobalIndexStencil() {
+    using namespace dawn::iir;
+
+    CartesianIIRBuilder b;
+    auto in_f = b.field("in_field", FieldType::ijk);
+    auto out_f = b.field("out_field", FieldType::ijk);
+
+    auto instantiation =
+        b.build("generated",
+                b.stencil(b.multistage(
+                    LoopOrderKind::Parallel,
+                    b.stage(b.doMethod(dawn::sir::Interval::Start, dawn::sir::Interval::End,
+                                       b.block(b.stmt(b.assignExpr(b.at(out_f), b.at(in_f)))))),
+                    b.stage(1, {0, 2},
+                            b.doMethod(dawn::sir::Interval::Start, dawn::sir::Interval::End,
+                                       b.block(b.stmt(b.assignExpr(b.at(out_f), b.lit(10)))))))));
+
+    return instantiation;
+  }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void fillMath(std::array<double, M * N * P>& data, double a, double b, double c, double d,
@@ -178,8 +198,13 @@ protected:
 
   void genTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
                const std::string& ref_file = "") {
+    BackendType backend = BackendType::CXXNaive;
+    if(ref_file.find(".cu") != std::string::npos) {
+      backend = BackendType::CUDA;
+    }
+
     // Expect codegen to succeed...
-    std::string gen = CompilerUtil::generate(instantiation);
+    std::string gen = CompilerUtil::generate(instantiation, "", backend);
     ASSERT_GT(gen.size(), 0);
 
     if(!ref_file.empty()) {
@@ -253,7 +278,7 @@ protected:
   }
 };
 
-TEST_F(TestCodeGenNaive, Asymmetric) {
+TEST_F(TestCodeGen, Asymmetric) {
   std::string filename = "input/asymmetric.iir";
   auto instantiation = CompilerUtil::load(filename, options_, context_);
 
@@ -300,7 +325,7 @@ TEST_F(TestCodeGenNaive, Asymmetric) {
   verify<N, N, N + 1, halo>(refData, outData["out"]);
 }
 
-TEST_F(TestCodeGenNaive, ConditionalStencil) {
+TEST_F(TestCodeGen, ConditionalStencil) {
   std::string filename = "input/conditional_stencil.iir";
   auto instantiation = CompilerUtil::load(filename, options_, context_);
 
@@ -337,7 +362,7 @@ TEST_F(TestCodeGenNaive, ConditionalStencil) {
   verify<N, N, N + 1, halo>(refData, outData["out"]);
 }
 
-TEST_F(TestCodeGenNaive, CoriolisStencil) {
+TEST_F(TestCodeGen, CoriolisStencil) {
   std::string filename = "input/coriolis_stencil.iir";
   auto instantiation = CompilerUtil::load(filename, options_, context_);
 
@@ -386,27 +411,17 @@ TEST_F(TestCodeGenNaive, CoriolisStencil) {
   verify<N, N, N + 1, halo>(v_ref, outData["v_tens"]);
 }
 
-TEST_F(TestCodeGenNaive, GlobalIndexStencil) {
-  using namespace dawn::iir;
-
-  CartesianIIRBuilder b;
-  auto in_f = b.field("in_field", FieldType::ijk);
-  auto out_f = b.field("out_field", FieldType::ijk);
-
-  auto instantiation =
-      b.build("generated",
-              b.stencil(b.multistage(
-                  LoopOrderKind::Parallel,
-                  b.stage(b.doMethod(dawn::sir::Interval::Start, dawn::sir::Interval::End,
-                                     b.block(b.stmt(b.assignExpr(b.at(out_f), b.at(in_f)))))),
-                  b.stage(1, {0, 2},
-                          b.doMethod(dawn::sir::Interval::Start, dawn::sir::Interval::End,
-                                     b.block(b.stmt(b.assignExpr(b.at(out_f), b.lit(10)))))))));
-
+TEST_F(TestCodeGen, GlobalIndexStencilNaive) {
+  auto instantiation = buildGlobalIndexStencil();
   genTest(instantiation, "reference/global_indexing.cpp");
 }
 
-TEST_F(TestCodeGenNaive, NonOverlappingInterval) {
+TEST_F(TestCodeGen, GlobalIndexStencilCuda) {
+  auto instantiation = buildGlobalIndexStencil();
+  genTest(instantiation, "reference/global_indexing.cu");
+}
+
+TEST_F(TestCodeGen, NonOverlappingInterval) {
   using namespace dawn::iir;
   using SInterval = dawn::sir::Interval;
 
@@ -440,7 +455,7 @@ TEST_F(TestCodeGenNaive, NonOverlappingInterval) {
   genTest(instantiation, "reference/nonoverlapping_stencil.cpp");
 }
 
-TEST_F(TestCodeGenNaive, LaplacianStencil) {
+TEST_F(TestCodeGen, LaplacianStencil) {
   using namespace dawn::iir;
   using SInterval = dawn::sir::Interval;
 

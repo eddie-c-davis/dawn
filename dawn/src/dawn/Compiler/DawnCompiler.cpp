@@ -58,11 +58,7 @@
 #include "dawn/Support/Unreachable.h"
 
 namespace dawn {
-
 namespace {
-
-// CodeGen backends
-enum class BackendType { GridTools, CXXNaive, CXXNaiveIco, CUDA, CXXOpt };
 
 BackendType parseBackendString(const std::string& backendStr) {
   if(backendStr == "gt" || backendStr == "gridtools") {

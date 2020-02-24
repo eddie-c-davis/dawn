@@ -24,6 +24,9 @@
 
 namespace dawn {
 
+// CodeGen backends
+enum class BackendType { GridTools, CXXNaive, CXXNaiveIco, CUDA, CXXOpt };
+
 struct SIR;
 
 /// @brief The DawnCompiler class

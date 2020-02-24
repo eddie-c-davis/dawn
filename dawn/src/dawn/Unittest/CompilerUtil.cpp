@@ -171,21 +171,22 @@ void CompilerUtil::dumpCuda(std::ostream& os, std::shared_ptr<iir::StencilInstan
   dump(generator, os);
 }
 
-std::string CompilerUtil::generate(std::shared_ptr<iir::StencilInstantiation>& si,
-                                   const std::string& srcFile, const bool writeStdout) {
+std::string CompilerUtil::generate(const std::shared_ptr<iir::StencilInstantiation>& si,
+                                   const std::string& srcFile, const BackendType backend) {
   std::ostringstream oss;
-  if(srcFile.find(".cu") != std::string::npos) {
+  switch(backend) {
+  case BackendType::CUDA:
     dumpCuda(oss, si);
-  } else if(srcFile.find("ico") != std::string::npos) {
+    break;
+  case BackendType::CXXNaiveIco:
     dumpNaiveIco(oss, si);
-  } else {
+    break;
+  default: // CXXNaive
     dumpNaive(oss, si);
+    break;
   }
-  std::string code = oss.str();
 
-  if(writeStdout) {
-    std::cout << code;
-  }
+  std::string code = oss.str();
 
   if(!srcFile.empty()) {
     std::ofstream ofs(srcFile);
@@ -486,16 +487,10 @@ void CompilerUtil::write(std::unique_ptr<OptimizerContext>& context, const unsig
 
 void CompilerUtil::setPath(const std::string& rootPath) { rootPath_ = rootPath; }
 
-void CompilerUtil::setCompiler(const std::string& compiler) {
-  compiler_ = compiler;
-}
+void CompilerUtil::setCompiler(const std::string& compiler) { compiler_ = compiler; }
 
-void CompilerUtil::setSourceDir(const std::string& sourceDir) {
-  sourceDir_ = sourceDir;
-}
+void CompilerUtil::setSourceDir(const std::string& sourceDir) { sourceDir_ = sourceDir; }
 
-void CompilerUtil::setBuildDir(const std::string& buildDir) {
-  buildDir_ = buildDir;
-}
+void CompilerUtil::setBuildDir(const std::string& buildDir) { buildDir_ = buildDir; }
 
 } // namespace dawn

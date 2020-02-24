@@ -73,8 +73,9 @@ public:
   static void dumpNaive(std::ostream& os, std::shared_ptr<iir::StencilInstantiation> si);
   static void dumpNaiveIco(std::ostream& os, std::shared_ptr<iir::StencilInstantiation> si);
   static void dumpCuda(std::ostream& os, std::shared_ptr<iir::StencilInstantiation> si);
-  static std::string generate(std::shared_ptr<iir::StencilInstantiation>& si,
-                              const std::string& srcFile = "", const bool writeStdout = false);
+  static std::string generate(const std::shared_ptr<iir::StencilInstantiation>& si,
+                              const std::string& srcFile = "",
+                              const BackendType backend = BackendType::CXXNaive);
 
   static std::string build(const std::string& srcFile, std::string& outFile,
                            const std::string& compiler = compiler_,
