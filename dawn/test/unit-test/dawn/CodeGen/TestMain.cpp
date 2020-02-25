@@ -29,6 +29,8 @@ int main(int argc, char* argv[]) {
       dawn::CompilerUtil::setSourceDir(argv[3]);
     if(argc > 4)
       dawn::CompilerUtil::setBuildDir(argv[4]);
+    if(argc > 5)
+      dawn::CompilerUtil::setCudaCompiler(argv[5]);
   }
 
   // Initialize Unittest-Logger

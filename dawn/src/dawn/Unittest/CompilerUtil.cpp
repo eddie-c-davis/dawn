@@ -44,6 +44,21 @@
 
 namespace dawn {
 
+std::ostream& operator<<(std::ostream& os, const BackendType& backend) {
+  switch(backend) {
+  case BackendType::CUDA:
+    os << "cuda";
+    break;
+  case BackendType::CXXNaiveIco:
+    os << "cxxnaiveico";
+    break;
+  default: // CXXNaive
+    os << "cxxnaive";
+    break;
+  }
+  return os;
+}
+
 bool CompilerUtil::Verbose;
 
 dawn::DiagnosticsEngine CompilerUtil::diag_;
@@ -55,6 +70,8 @@ std::string CompilerUtil::rootPath_;
 std::string CompilerUtil::sourceDir_ = ".";
 
 std::string CompilerUtil::buildDir_ = ".";
+
+std::string CompilerUtil::cudaCompiler_ = "";
 
 std::shared_ptr<SIR> CompilerUtil::load(const std::string& sirFilename) {
   std::string sirPath = sirFilename;
@@ -197,14 +214,23 @@ std::string CompilerUtil::generate(const std::shared_ptr<iir::StencilInstantiati
 }
 
 std::string CompilerUtil::build(const std::string& srcFile, std::string& outFile,
-                                const std::string& compiler, const std::vector<std::string>& args) {
+                                const BackendType backend, const std::string& compiler,
+                                const std::vector<std::string>& args) {
   std::vector<std::string> includeDirs;
   includeDirs.push_back(sourceDir_ + "/dawn/src");
   includeDirs.push_back(sourceDir_ + "/gtclang");
   includeDirs.push_back(sourceDir_ + "/gtclang/src");
   includeDirs.push_back(buildDir_ + "/_deps/gridtools-src/include");
 
-  std::string compileCmd = compiler + " " + srcFile;
+  std::string compileCmd = compiler;
+
+  if(backend == BackendType::CUDA) {
+    compileCmd = cudaCompiler_;
+    compileCmd += " -DGRIDTOOLS_DAWN_CUDA -DOPTBACKEND=cuda -arch=sm_60 -x cu -std=c++11";
+  }
+
+  compileCmd += " " + srcFile;
+
   for(const std::string& includeDir : includeDirs) {
     compileCmd += " -I" + includeDir;
   }
@@ -222,6 +248,8 @@ std::string CompilerUtil::build(const std::string& srcFile, std::string& outFile
   }
 
   compileCmd += " -o " + outFile;
+  if(Verbose)
+    std::cerr << "compileCmd: '" << compileCmd << "'\n";
 
   return readPipe(compileCmd);
 }
@@ -492,5 +520,9 @@ void CompilerUtil::setCompiler(const std::string& compiler) { compiler_ = compil
 void CompilerUtil::setSourceDir(const std::string& sourceDir) { sourceDir_ = sourceDir; }
 
 void CompilerUtil::setBuildDir(const std::string& buildDir) { buildDir_ = buildDir; }
+
+void CompilerUtil::setCudaCompiler(const std::string& compiler) { cudaCompiler_ = compiler; }
+
+std::string CompilerUtil::getCudaCompiler() { return cudaCompiler_; }
 
 } // namespace dawn

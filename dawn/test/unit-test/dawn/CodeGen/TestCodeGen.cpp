@@ -173,7 +173,7 @@ protected:
     ofs << ");\n";
   }
 
-  void writeStencilCall(const std::string& backend, const std::string& stencilName,
+  void writeStencilCall(const BackendType& backend, const std::string& stencilName,
                         const std::vector<std::string>& inputNames,
                         const std::vector<std::string>& outputNames, std::ofstream& ofs) {
     ofs << "  dawn_generated::" << backend << "::" << stencilName << " stencil(dom);\n";
@@ -219,10 +219,11 @@ protected:
                const std::vector<std::vector<double>>& inFillValues, const double outFillValue,
                const std::vector<std::string>& inputNames = {"in"},
                const std::vector<std::string>& outputNames = {"out"},
-               const std::string& srcFile = "", const std::string& backend = "cxxnaive") {
+               const std::string& srcFile = "",
+               const BackendType& backend = BackendType::CXXNaive) {
     std::string stencilName = instantiation->getMetaData().getStencilName();
 
-    std::string gen = CompilerUtil::generate(instantiation);
+    std::string gen = CompilerUtil::generate(instantiation, srcFile, backend);
     ASSERT_GT(gen.size(), 0);
 
     std::string genFile = srcFile;
@@ -248,12 +249,13 @@ protected:
       outFile = outFile.substr(0, pos);
     }
 
-    std::string buildOut = CompilerUtil::build(genFile, outFile);
+    std::string buildOut = CompilerUtil::build(genFile, outFile, backend);
     ASSERT_TRUE(buildOut.empty());
     ASSERT_TRUE(fs::exists(outFile));
 
     std::string output = readPipe(outFile);
     ASSERT_FALSE(output.empty());
+    ASSERT_TRUE(output.find("error") == std::string::npos) << output;
 
     std::vector<std::string> lines;
     tokenize(output, '\n', lines);
@@ -409,6 +411,15 @@ TEST_F(TestCodeGen, CoriolisStencil) {
   // Verify data
   verify<N, N, N + 1, halo>(u_ref, outData["u_tens"]);
   verify<N, N, N + 1, halo>(v_ref, outData["v_tens"]);
+
+  if(!CompilerUtil::getCudaCompiler().empty()) {
+    runTest<N, N, N + 1>(instantiation, outData, halo,
+                         {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0},
+                          {5.0, 1.2, 1.3, 1.7, 2.2, 3.5},
+                          {2.0, 1.3, 1.4, 1.6, 2.1, 3.0}},
+                         -1.0, {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"}, "",
+                         BackendType::CUDA);
+  }
 }
 
 TEST_F(TestCodeGen, GlobalIndexStencilNaive) {

@@ -48,6 +48,8 @@ enum class PassGroup {
 using stencilInstantiationContext =
     std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>;
 
+std::ostream& operator<<(std::ostream& os, const BackendType& backend);
+
 /// @brief Compiler utilities for unit tests
 /// @ingroup unittest
 class CompilerUtil {
@@ -78,6 +80,7 @@ public:
                               const BackendType backend = BackendType::CXXNaive);
 
   static std::string build(const std::string& srcFile, std::string& outFile,
+                           const BackendType backend = BackendType::CXXNaive,
                            const std::string& compiler = compiler_,
                            const std::vector<std::string>& args = {"-g"});
 
@@ -122,12 +125,17 @@ public:
 
   static void setBuildDir(const std::string& buildDir = ".");
 
+  static void setCudaCompiler(const std::string& compiler = "nvcc");
+
+  static std::string getCudaCompiler();
+
 private:
   static dawn::DiagnosticsEngine diag_;
   static std::string rootPath_;
   static std::string compiler_;
   static std::string sourceDir_;
   static std::string buildDir_;
+  static std::string cudaCompiler_;
 };
 
 } // namespace dawn
