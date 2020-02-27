@@ -23,12 +23,9 @@
 #include "dawn/Support/StringUtil.h"
 #include "dawn/Unittest/CompilerUtil.h"
 #include "dawn/Unittest/IIRBuilder.h"
-#include "dawn/Unittest/UnittestLogger.h"
 
 #include <fstream>
 #include <gtest/gtest.h>
-
-#define ndx(i, j, k) (k) + ((j) + (i)*N) * N
 
 using namespace dawn;
 
@@ -279,6 +276,8 @@ protected:
     }
   }
 };
+
+#define ndx(i, j, k) (k) + ((j) + (i)*N) * N
 
 TEST_F(TestCodeGen, Asymmetric) {
   std::string filename = "input/asymmetric.iir";

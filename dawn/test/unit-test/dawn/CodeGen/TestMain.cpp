@@ -14,7 +14,6 @@
 
 #include "dawn/Support/STLExtras.h"
 #include "dawn/Unittest/CompilerUtil.h"
-#include "dawn/Unittest/UnittestLogger.h"
 #include <gtest/gtest.h>
 
 int main(int argc, char* argv[]) {
@@ -32,10 +31,6 @@ int main(int argc, char* argv[]) {
     if(argc > 5)
       dawn::CompilerUtil::setCudaCompiler(argv[5]);
   }
-
-  // Initialize Unittest-Logger
-  auto logger = std::make_unique<dawn::UnittestLogger>();
-  dawn::Logger::getSingleton().registerLogger(logger.get());
 
   return RUN_ALL_TESTS();
 }
