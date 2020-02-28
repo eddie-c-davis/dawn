@@ -280,8 +280,7 @@ protected:
 #define ndx(i, j, k) (k) + ((j) + (i)*N) * N
 
 TEST_F(TestCodeGen, Asymmetric) {
-  std::string filename = "input/asymmetric.iir";
-  auto instantiation = CompilerUtil::load(filename, options_, context_);
+  auto instantiation = CompilerUtil::load("input/asymmetric.iir", options_, context_);
 
   const unsigned N = 12;
   const unsigned halo = 3;
@@ -327,8 +326,7 @@ TEST_F(TestCodeGen, Asymmetric) {
 }
 
 TEST_F(TestCodeGen, ConditionalStencil) {
-  std::string filename = "input/conditional_stencil.iir";
-  auto instantiation = CompilerUtil::load(filename, options_, context_);
+  auto instantiation = CompilerUtil::load("input/conditional_stencil.iir", options_, context_);
 
   const unsigned N = 12;
   const unsigned halo = 3;
@@ -364,9 +362,6 @@ TEST_F(TestCodeGen, ConditionalStencil) {
 }
 
 TEST_F(TestCodeGen, CoriolisStencil) {
-  std::string filename = "input/coriolis_stencil.iir";
-  auto instantiation = CompilerUtil::load(filename, options_, context_);
-
   const unsigned N = 12;
   const unsigned halo = 3;
   const unsigned size = N * N * (N + 1);
@@ -400,6 +395,9 @@ TEST_F(TestCodeGen, CoriolisStencil) {
     }
   }
 
+  // Deserialize the IIR
+  auto instantiation = CompilerUtil::load("input/coriolis_stencil.iir", options_, context_);
+
   // Run the generated code
   runTest<N, N, N + 1>(instantiation, outData, halo,
                        {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0},
@@ -411,7 +409,7 @@ TEST_F(TestCodeGen, CoriolisStencil) {
   verify<N, N, N + 1, halo>(u_ref, outData["u_tens"]);
   verify<N, N, N + 1, halo>(v_ref, outData["v_tens"]);
 
-  if(!CompilerUtil::getCudaCompiler().empty()) {
+  if(CompilerUtil::hasCudaGPU()) {
     runTest<N, N, N + 1>(instantiation, outData, halo,
                          {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0},
                           {5.0, 1.2, 1.3, 1.7, 2.2, 3.5},

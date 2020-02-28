@@ -127,7 +127,7 @@ public:
 
   static void setCudaCompiler(const std::string& compiler = "nvcc");
 
-  static std::string getCudaCompiler();
+  static bool hasCudaGPU();
 
 private:
   static dawn::DiagnosticsEngine diag_;

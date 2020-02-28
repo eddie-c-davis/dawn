@@ -65,7 +65,7 @@ dawn::DiagnosticsEngine CompilerUtil::diag_;
 
 std::string CompilerUtil::compiler_ = "c++";
 
-std::string CompilerUtil::rootPath_;
+std::string CompilerUtil::rootPath_ = "";
 
 std::string CompilerUtil::sourceDir_ = ".";
 
@@ -251,7 +251,12 @@ std::string CompilerUtil::build(const std::string& srcFile, std::string& outFile
   if(Verbose)
     std::cerr << "compileCmd: '" << compileCmd << "'\n";
 
-  return readPipe(compileCmd);
+  std::string compileOut = readPipe(compileCmd);
+
+  if(Verbose)
+    std::cerr << "compileOut: '" << compileOut << "'\n";
+
+  return compileOut;
 }
 
 std::vector<std::shared_ptr<Pass>>
@@ -523,6 +528,21 @@ void CompilerUtil::setBuildDir(const std::string& buildDir) { buildDir_ = buildD
 
 void CompilerUtil::setCudaCompiler(const std::string& compiler) { cudaCompiler_ = compiler; }
 
-std::string CompilerUtil::getCudaCompiler() { return cudaCompiler_; }
+bool CompilerUtil::hasCudaGPU() {
+  bool result = fs::exists(cudaCompiler_);
+  if(result) {
+    fs::path cudaDir(cudaCompiler_);
+    cudaDir.remove_filename();
+    std::string detector = cudaDir.string() + "/nvidia-detector";
+    result = fs::exists(detector);
+    if(result) {
+      std::string output = readPipe(detector);
+      if(Verbose)
+        std::cerr << detector << ": '" << output << "'\n";
+      result = (!output.empty() && output.find("None") == std::string::npos);
+    }
+  }
+  return result;
+}
 
 } // namespace dawn
