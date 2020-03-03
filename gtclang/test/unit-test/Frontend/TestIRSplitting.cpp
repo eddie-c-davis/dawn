@@ -41,9 +41,10 @@ TEST(IRSplittingTest, CacheTest) {
       .split("PassSetCaches/IJCacheTest02.cpp", {"-freport-pass-set-caches"});
 }
 
-TEST(IRSplittingTest, CodeGen) {
-  gtclang::IRSplitter("../../../../dawn/test/unit-test/dawn/CodeGen/Naive/input", 1)
-      .split("conditional_stencil.cpp", {});
+TEST(IRSplittingTest, TemporaryMerger) {
+  gtclang::IRSplitter("dawn/test/unit-test/dawn/Optimizer/Passes", 3)
+      .split("dawn/test/unit-test/dawn/Optimizer/Passes/samples/MergeTest05.cpp",
+             {"-fmerge-temporaries"});
 }
 
 } // anonymous namespace
