@@ -718,7 +718,8 @@ def make_literal_access_expr(value: str, type: BuiltinType.TypeID) -> LiteralAcc
     :param type:    Builtin type id of the literal.
     """
     builtin_type = BuiltinType()
-    builtin_type.type_id = type
+    if builtin_type.type_id != type:
+        builtin_type.type_id = type
 
     expr = LiteralAccessExpr()
     expr.value = value
