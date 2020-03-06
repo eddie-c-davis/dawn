@@ -412,10 +412,20 @@ TEST_F(TestCodeGen, CoriolisStencil) {
   }
 }
 
+inline bool checkOffset(unsigned int min, unsigned int max, unsigned int val) {
+  return (min <= val && val < max);
+}
+
 TEST_F(TestCodeGen, YPPMStencil) {
   const unsigned N = GRID_SIZE;
   const unsigned halo = GRIDTOOLS_DAWN_HALO_EXTENT;
   const unsigned size = N * N * (N + 1);
+
+  const double c1 = 0.142857;
+  const double c2 = 0.785714;
+  const double c3 = 0.357143;
+  const double p1 = 0.583333;
+  const double p2 = 0.083333;
 
   std::array<double, size> q, dya;
   std::array<double, size> al_ref;
@@ -430,68 +440,54 @@ TEST_F(TestCodeGen, YPPMStencil) {
   std::vector<double> dy_fill = {5.0, 1.2, 1.3, 1.7, 2.2, 3.5};
   fillMath<N, N, N + 1>(dy_fill, dya);
 
+  std::array<unsigned, 2> stage1GlobalJIndices = {3, 4};
+  std::array<unsigned, 2> stage2GlobalJIndices = {8, 9};
+
   // Populate reference data...
-  //  for(int k = 0; k <= N - 1; ++k) {
-  //    for(int i = halo; i <= N - halo - 1; ++i) {
-  //      for(int j = halo; j <= N - halo - 1; ++j) {
-  //        al(i + 0, j + 0, k + 0) =
-  //            ((m_globals.p1 * (q(i + 0, j + -1, k + 0) + q(i + 0, j + 0, k + 0))) -
-  //             (m_globals.p2 * (q(i + 0, j + -2, k + 0) + q(i + 0, j + 1, k + 0))));
-  //      }
-  //    }
-  //    for(int i = halo; i <= N - halo - 1; ++i) {
-  //      for(int j = halo; j <= N - halo - 1; ++j) {
-  //        if(checkOffset(stage210GlobalJIndices[0], stage210GlobalJIndices[1],
-  //                       globalOffsets[1] + j)) {
-  //          al(i + 0, j + 0, k + 0) = ((((-m_globals.c1) * q(i + 0, j + -2, k + 0)) +
-  //                                      (m_globals.c2 * q(i + 0, j + -1, k + 0))) +
-  //                                     (m_globals.c3 * q(i + 0, j + 0, k + 0)));
-  //          al(i + 0, j + 1, k + 0) =
-  //              ((::dawn::float_type)0.5 *
-  //               (((((((::dawn::float_type)2 * dya(i + 0, j + 0, k + 0)) +
-  //                    dya(i + 0, j + -1, k + 0)) *
-  //                   q(i + 0, j + 0, k + 0)) -
-  //                  (dya(i + 0, j + 0, k + 0) * q(i + 0, j + -1, k + 0))) /
-  //                 (dya(i + 0, j + -1, k + 0) + dya(i + 0, j + 0, k + 0))) +
-  //                ((((((::dawn::float_type)2 * dya(i + 0, j + 1, k + 0)) + dya(i + 0, j + 2, k +
-  //                0)) *
-  //                   q(i + 0, j + 1, k + 0)) -
-  //                  (dya(i + 0, j + 1, k + 0) * q(i + 0, j + 2, k + 0))) /
-  //                 (dya(i + 0, j + 1, k + 0) + dya(i + 0, j + 2, k + 0)))));
-  //          al(i + 0, j + 2, k + 0) =
-  //              (((m_globals.c3 * q(i + 0, j + 1, k + 0)) + (m_globals.c2 * q(i + 0, j + 2, k +
-  //              0))) -
-  //               (m_globals.c1 * q(i + 0, j + 3, k + 0)));
-  //        }
-  //      }
-  //    }
-  //    for(int i = halo; i <= N - halo - 1; ++i) {
-  //      for(int j = halo; j <= N - halo - 1; ++j) {
-  //        if(checkOffset(stage283GlobalJIndices[0], stage283GlobalJIndices[1],
-  //                       globalOffsets[1] + j)) {
-  //          al(i + 0, j + 0, k + 0) = ((((-m_globals.c1) * q(i + 0, j + -2, k + 0)) +
-  //                                      (m_globals.c2 * q(i + 0, j + -1, k + 0))) +
-  //                                     (m_globals.c3 * q(i + 0, j + 0, k + 0)));
-  //          al(i + 0, j + 1, k + 0) =
-  //              ((::dawn::float_type)0.5 *
-  //               (((((((::dawn::float_type)2 * dya(i + 0, j + 0, k + 0)) +
-  //                    dya(i + 0, j + -1, k + 0)) *
-  //                   q(i + 0, j + 0, k + 0)) -
-  //                  (dya(i + 0, j + 0, k + 0) * q(i + 0, j + -1, k + 0))) /
-  //                 (dya(i + 0, j + -1, k + 0) + dya(i + 0, j + 0, k + 0))) +
-  //                ((((((::dawn::float_type)2 * dya(i + 0, j + 1, k + 0)) + dya(i + 0, j + 2, k +
-  //                0)) *
-  //                   q(i + 0, j + 1, k + 0)) -
-  //                  (dya(i + 0, j + 1, k + 0) * q(i + 0, j + 2, k + 0))) /
-  //                 (dya(i + 0, j + 1, k + 0) + dya(i + 0, j + 2, k + 0)))));
-  //          al(i + 0, j + 2, k + 0) =
-  //              (((m_globals.c3 * q(i + 0, j + 1, k + 0)) + (m_globals.c2 * q(i + 0, j + 2, k +
-  //              0))) -
-  //               (m_globals.c1 * q(i + 0, j + 3, k + 0)));
-  //        }
-  //      }
-  //    }
-  //  }
+  for(int k = 0; k <= N - 1; ++k) {
+    for(int i = halo; i <= N - halo - 1; ++i) {
+      for(int j = halo; j <= N - halo - 1; ++j) {
+        al_ref[ndx(i, j, k)] = (p1 * (q[ndx(i, j - 1, k)] + q[ndx(i, j, k)])) -
+                               (p2 * (q[ndx(i, j - 2, k)] + q[ndx(i, j + 1, k)]));
+      }
+    }
+    for(int i = halo; i <= N - halo - 1; ++i) {
+      for(int j = halo; j <= N - halo - 1; ++j) {
+        if(checkOffset(stage1GlobalJIndices[0], stage1GlobalJIndices[1], j)) {
+          al_ref[ndx(i, j, k)] =
+              -c1 * q[ndx(i, j - 2, k)] + c2 * q[ndx(i, j - 1, k)] + c3 * q[ndx(i, j, k)];
+          al_ref[ndx(i, j + 1, k)] =
+              (0.5 *
+               (((((2.0 * dya[ndx(i, j, k)] + dya[ndx(i, j - 1, k)]) * q[ndx(i, j, k)]) -
+                  dya[ndx(i, j, k)] * q[ndx(i, j - 1, k)]) /
+                 (dya[ndx(i, j - 1, k)] + dya[ndx(i, j, k)])) +
+                ((((2.0 * dya[ndx(i, j + 1, k)] + dya[ndx(i, j + 2, k)]) * q[ndx(i, j + 1, k)]) -
+                  dya[ndx(i, j + 1, k)] * q[ndx(i, j + 2, k)]) /
+                 (dya[ndx(i, j + 1, k)] + dya[ndx(i, j + 2, k)]))));
+          al_ref[ndx(i, j + 2, k)] =
+              ((c3 * q[ndx(i, j + 1, k)] + c2 * q[ndx(i, j + 2, k)]) - c1 * q[ndx(i, j + 3, k)]);
+        }
+      }
+    }
+    for(int i = halo; i <= N - halo - 1; ++i) {
+      for(int j = halo; j <= N - halo - 1; ++j) {
+        if(checkOffset(stage2GlobalJIndices[0], stage2GlobalJIndices[1], j)) {
+          al_ref[ndx(i, j, k)] =
+              (-c1 * q[ndx(i, j - 2, k)] + c2 * q[ndx(i, j - 1, k)]) + (c3 * q[ndx(i, j, k)]);
+          al_ref[ndx(i, j + 1, k)] =
+              0.5 *
+              (((((2.0 * dya[ndx(i, j, k)] + dya[ndx(i, j - 1, k)]) * q[ndx(i, j, k)]) -
+                 dya[ndx(i, j, k)] * q[ndx(i, j - 1, k)]) /
+                (dya[ndx(i, j - 1, k)] + dya[ndx(i, j, k)])) +
+               ((((2.0 * dya[ndx(i, j + 1, k)] + dya[ndx(i, j + 2, k)]) * q[ndx(i, j + 1, k)]) -
+                 (dya[ndx(i, j + 1, k)] * q[ndx(i, j + 2, k)])) /
+                (dya[ndx(i, j + 1, k)] + dya[ndx(i, j + 2, k)])));
+          al_ref[ndx(i, j + 2, k)] =
+              (c3 * q[ndx(i, j + 1, k)] + c2 * q[ndx(i, j + 2, k)]) - (c1 * q[ndx(i, j + 3, k)]);
+        }
+      }
+    }
+  }
 
   refData["al"] = al_ref;
 
