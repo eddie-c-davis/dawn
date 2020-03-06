@@ -12,8 +12,4 @@
 ##
 ##===------------------------------------------------------------------------------------------===##
 
-add_subdirectory(dawn)
-add_subdirectory(dawn4py-tests)
-add_subdirectory(from-sir)
-add_subdirectory(serializer)
-add_subdirectory(unstructured)
+add_subdirectory(CodeGen)

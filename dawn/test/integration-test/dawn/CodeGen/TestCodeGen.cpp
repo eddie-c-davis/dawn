@@ -36,26 +36,9 @@ protected:
   dawn::OptimizerContext::OptimizerContextOptions options_;
   std::unique_ptr<OptimizerContext> context_;
 
-  virtual void SetUp() { dawn::UIDGenerator::getInstance()->reset(); }
-
-  std::shared_ptr<iir::StencilInstantiation> buildGlobalIndexStencil() {
-    using namespace dawn::iir;
-
-    CartesianIIRBuilder b;
-    auto in_f = b.field("in_field", FieldType::ijk);
-    auto out_f = b.field("out_field", FieldType::ijk);
-
-    auto instantiation =
-        b.build("generated",
-                b.stencil(b.multistage(
-                    LoopOrderKind::Parallel,
-                    b.stage(b.doMethod(dawn::sir::Interval::Start, dawn::sir::Interval::End,
-                                       b.block(b.stmt(b.assignExpr(b.at(out_f), b.at(in_f)))))),
-                    b.stage(1, {0, 2},
-                            b.doMethod(dawn::sir::Interval::Start, dawn::sir::Interval::End,
-                                       b.block(b.stmt(b.assignExpr(b.at(out_f), b.lit(10)))))))));
-
-    return instantiation;
+  virtual void SetUp() {
+    dawn::UIDGenerator::getInstance()->reset();
+    // CompilerUtil::Verbose = true;
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
@@ -191,23 +174,6 @@ protected:
       ofs << "  print(dom, make_host_view(" << output << "));\n";
     }
     ofs << "}\n";
-  }
-
-  void genTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               const std::string& ref_file = "") {
-    BackendType backend = BackendType::CXXNaive;
-    if(ref_file.find(".cu") != std::string::npos) {
-      backend = BackendType::CUDA;
-    }
-
-    // Expect codegen to succeed...
-    std::string gen = CompilerUtil::generate(instantiation, "", backend);
-    ASSERT_GT(gen.size(), 0);
-
-    if(!ref_file.empty()) {
-      std::string ref = dawn::readFile(ref_file);
-      ASSERT_EQ(gen, ref) << "Generated code does not match reference code";
-    }
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
@@ -417,82 +383,6 @@ TEST_F(TestCodeGen, CoriolisStencil) {
                          -1.0, {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"}, "",
                          BackendType::CUDA);
   }
-}
-
-TEST_F(TestCodeGen, GlobalIndexStencilNaive) {
-  auto instantiation = buildGlobalIndexStencil();
-  genTest(instantiation, "reference/global_indexing.cpp");
-}
-
-TEST_F(TestCodeGen, GlobalIndexStencilCuda) {
-  auto instantiation = buildGlobalIndexStencil();
-  genTest(instantiation, "reference/global_indexing.cu");
-}
-
-TEST_F(TestCodeGen, NonOverlappingInterval) {
-  using namespace dawn::iir;
-  using SInterval = dawn::sir::Interval;
-
-  CartesianIIRBuilder b;
-  auto in = b.field("in", FieldType::ijk);
-  auto out = b.field("out", FieldType::ijk);
-  auto dx = b.localvar("dx", dawn::BuiltinTypeID::Double);
-
-  auto instantiation = b.build(
-      "generated",
-      b.stencil(b.multistage(
-          LoopOrderKind::Parallel,
-          b.stage(b.doMethod(
-              SInterval(SInterval::Start, 10), b.declareVar(dx),
-              b.block(b.stmt(b.assignExpr(
-                  b.at(out),
-                  b.binaryExpr(
-                      b.binaryExpr(
-                          b.lit(-4),
-                          b.binaryExpr(
-                              b.at(in),
-                              b.binaryExpr(b.at(in, {1, 0, 0}),
-                                           b.binaryExpr(b.at(in, {-1, 0, 0}),
-                                                        b.binaryExpr(b.at(in, {0, -1, 0}),
-                                                                     b.at(in, {0, 1, 0}))))),
-                          Op::multiply),
-                      b.binaryExpr(b.at(dx), b.at(dx), Op::multiply), Op::divide)))))),
-          b.stage(b.doMethod(SInterval(15, SInterval::End),
-                             b.block(b.stmt(b.assignExpr(b.at(out), b.lit(10)))))))));
-
-  genTest(instantiation, "reference/nonoverlapping_stencil.cpp");
-}
-
-TEST_F(TestCodeGen, LaplacianStencil) {
-  using namespace dawn::iir;
-  using SInterval = dawn::sir::Interval;
-
-  CartesianIIRBuilder b;
-  auto in = b.field("in", FieldType::ijk);
-  auto out = b.field("out", FieldType::ijk);
-  auto dx = b.localvar("dx", dawn::BuiltinTypeID::Double);
-
-  auto instantiation = b.build(
-      "generated",
-      b.stencil(b.multistage(
-          LoopOrderKind::Parallel,
-          b.stage(b.doMethod(
-              SInterval::Start, SInterval::End, b.declareVar(dx),
-              b.block(b.stmt(b.assignExpr(
-                  b.at(out),
-                  b.binaryExpr(
-                      b.binaryExpr(
-                          b.lit(-4),
-                          b.binaryExpr(
-                              b.at(in),
-                              b.binaryExpr(b.at(in, {1, 0, 0}),
-                                           b.binaryExpr(b.at(in, {-1, 0, 0}),
-                                                        b.binaryExpr(b.at(in, {0, -1, 0}),
-                                                                     b.at(in, {0, 1, 0}))))),
-                          Op::multiply),
-                      b.binaryExpr(b.at(dx), b.at(dx), Op::multiply), Op::divide)))))))));
-
-  genTest(instantiation);
 }
 
 } // anonymous namespace
