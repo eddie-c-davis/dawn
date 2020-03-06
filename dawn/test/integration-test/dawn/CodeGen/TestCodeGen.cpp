@@ -27,6 +27,11 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
+#define GRID_SIZE 12
+#ifndef GRIDTOOLS_DAWN_HALO_EXTENT
+#define GRIDTOOLS_DAWN_HALO_EXTENT 3
+#endif
+
 using namespace dawn;
 
 namespace {
@@ -42,9 +47,15 @@ protected:
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
-  void fillMath(std::array<double, M * N * P>& data, double a, double b, double c, double d,
-                double e, double f) {
+  void fillMath(const std::vector<double>& args, std::array<double, M * N * P>& data) {
+    double a = args[0];
+    double b = args[1];
+    double c = args[2];
+    double d = args[3];
+    double e = args[4];
+    double f = args[5];
     double pi = std::atan(1.) * 4.;
+
     for(int i = 0; i < M; ++i) {
       for(int j = 0; j < N; ++j) {
         double x = i / (double)M;
@@ -59,7 +70,7 @@ protected:
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
-  void fillValue(std::array<double, M * N * P>& storage, double val = 0.0) {
+  void fillValue(std::array<double, M * N * P>& storage, double val = -1.0) {
     for(int i = 0; i < M; ++i) {
       for(int j = 0; j < N; ++j) {
         for(int k = 0; k < P; ++k) {
@@ -73,6 +84,21 @@ protected:
   void fillValue(std::vector<std::array<double, M * N * P>>& storages, double val = 0.0) {
     for(const auto& storage : storages) {
       fillValue<M, N, P, D>(storage, val);
+    }
+  }
+
+  template <unsigned M, unsigned N = 1, unsigned P = 1>
+  void verify(std::array<double, M * N * P>& refData, std::vector<double>& testData,
+              const unsigned halo = GRIDTOOLS_DAWN_HALO_EXTENT, const double eps = 1e-6) {
+    unsigned n = 0;
+    for(int i = halo; i < M - halo; ++i) {
+      for(int j = halo; j < N - halo; ++j) {
+        for(int k = 0; k < P - 1; ++k) {
+          double diff = fabs(refData[k + (j + i * M) * N] - testData[n]);
+          ASSERT_LT(diff, eps) << "Test data does not match reference data at n=" << n;
+          n += 1;
+        }
+      }
     }
   }
 
@@ -178,8 +204,10 @@ protected:
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
   void runTest(std::shared_ptr<iir::StencilInstantiation>& instantiation,
-               std::unordered_map<std::string, std::vector<double>>& outData, const unsigned halo,
-               const std::vector<std::vector<double>>& inFillValues, const double outFillValue,
+               std::unordered_map<std::string, std::vector<double>>& outData,
+               std::unordered_map<std::string, std::array<double, M * N * P>>& refData,
+               const std::vector<std::vector<double>>& inFillValues,
+               const double outFillValue = -1.0, const unsigned halo = GRIDTOOLS_DAWN_HALO_EXTENT,
                const std::vector<std::string>& inputNames = {"in"},
                const std::vector<std::string>& outputNames = {"out"},
                const std::string& srcFile = "",
@@ -223,22 +251,13 @@ protected:
     std::vector<std::string> lines;
     tokenize(output, '\n', lines);
     for(int i = 0; i < outputNames.size(); ++i) {
+      outData[outputNames[i]].clear();
       tokenize(lines[i], ' ', outData[outputNames[i]]);
     }
-  }
 
-  template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned H = 3>
-  void verify(std::array<double, M * N * P>& refData, std::vector<double>& testData,
-              const double eps = 1e-6) {
-    unsigned n = 0;
-    for(int i = H; i < M - H; ++i) {
-      for(int j = H; j < N - H; ++j) {
-        for(int k = 0; k < P - 1; ++k) {
-          double diff = fabs(refData[k + (j + i * M) * N] - testData[n]);
-          ASSERT_LT(diff, eps) << "Test data does not match reference data at n=" << n;
-          n += 1;
-        }
-      }
+    // Verify data
+    for(const std::string& outputName : outputNames) {
+      verify<M, N, P>(refData[outputName], outData[outputName]);
     }
   }
 };
@@ -248,8 +267,8 @@ protected:
 TEST_F(TestCodeGen, Asymmetric) {
   auto instantiation = CompilerUtil::load("input/asymmetric.iir", options_, context_);
 
-  const unsigned N = 12;
-  const unsigned halo = 3;
+  const unsigned N = GRID_SIZE;
+  const unsigned halo = GRIDTOOLS_DAWN_HALO_EXTENT;
   const unsigned size = N * N * (N + 1);
 
   const int iMax = N - halo - 1;
@@ -257,13 +276,15 @@ TEST_F(TestCodeGen, Asymmetric) {
   const int kMax = N - 1;
 
   std::array<double, size> inData;
-  std::array<double, size> refData;
+  std::array<double, size> outRef;
   std::array<double, size> tmpData;
   std::unordered_map<std::string, std::vector<double>> outData({{"out", std::vector<double>()}});
+  std::unordered_map<std::string, std::array<double, size>> refData;
 
   // Initialize data
-  fillMath<N, N, N + 1>(inData, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
-  fillValue<N, N, N + 1>(refData, -1.0);
+  std::vector<double> inFills = {8.0, 2.0, 1.5, 1.5, 2.0, 4.0};
+  fillMath<N, N, N + 1>(inFills, inData);
+  fillValue<N, N, N + 1>(outRef, -1.0);
   fillValue<N, N, N + 1>(tmpData, 0.0);
 
   // Populate reference data...
@@ -271,7 +292,7 @@ TEST_F(TestCodeGen, Asymmetric) {
   for(int i = halo; i <= iMax; ++i) {
     for(int j = halo; j <= jMax; ++j) {
       tmpData[ndx(i, j, k)] = inData[ndx(i + 1, j, k)] + inData[ndx(i, j - 2, k)];
-      refData[ndx(i, j, k)] = 1;
+      outRef[ndx(i, j, k)] = 1;
     }
   }
 
@@ -279,41 +300,49 @@ TEST_F(TestCodeGen, Asymmetric) {
     for(int i = halo; i <= iMax; ++i) {
       for(int j = halo; j <= jMax; ++j) {
         tmpData[ndx(i, j, k)] = inData[ndx(i - 3, j, k)] + inData[ndx(i, j + 1, k)];
-        refData[ndx(i, j, k)] = tmpData[ndx(i, j, k - 1)];
+        outRef[ndx(i, j, k)] = tmpData[ndx(i, j, k - 1)];
       }
     }
   }
 
-  // Run the generated code
-  runTest<N, N, N + 1>(instantiation, outData, halo, {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0}}, -1.0);
+  refData["out"] = outRef;
 
-  // Verify data
-  verify<N, N, N + 1, halo>(refData, outData["out"]);
+  // Run the generated code
+  runTest<N, N, N + 1>(instantiation, outData, refData, {inFills});
+
+  if(CompilerUtil::hasCudaGPU()) {
+    runTest<N, N, N + 1>(instantiation, outData, refData, {inFills}, -1.0, halo, {"in"}, {"out"},
+                         "", BackendType::CUDA);
+  }
 }
 
 TEST_F(TestCodeGen, ConditionalStencil) {
   auto instantiation = CompilerUtil::load("input/conditional_stencil.iir", options_, context_);
 
-  const unsigned N = 12;
-  const unsigned halo = 3;
+  const unsigned N = GRID_SIZE;
+  const unsigned halo = GRIDTOOLS_DAWN_HALO_EXTENT;
   const unsigned size = N * N * (N + 1);
 
   std::array<double, size> inData;
-  std::array<double, size> refData;
+  std::array<double, size> outRef;
   std::unordered_map<std::string, std::vector<double>> outData({{"out", std::vector<double>()}});
+  std::unordered_map<std::string, std::array<double, size>> refData;
 
   // Initialize data
-  fillMath<N, N, N + 1>(inData, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
-  fillValue<N, N, N + 1>(refData, -1.0);
+  std::vector<double> inFills = {8.0, 2.0, 1.5, 1.5, 2.0, 4.0};
+  fillMath<N, N, N + 1>(inFills, inData);
+  fillValue<N, N, N + 1>(outRef);
 
   // Populate reference data...
   for(int k = 0; k <= N - 1; ++k) {
     for(int i = halo; i <= N - halo - 1; ++i) {
       for(int j = halo; j <= N - halo - 1; ++j) {
-        refData[ndx(i, j, k)] = inData[ndx(i, j + 1, k)];
+        outRef[ndx(i, j, k)] = inData[ndx(i, j + 1, k)];
       }
     }
   }
+
+  refData["out"] = outRef;
 
   // Per issue #724 (MeteoSwiss-APN/dawn/issues/724), globals are not
   //   deserialized properly, so need to correct before running the test...
@@ -321,15 +350,17 @@ TEST_F(TestCodeGen, ConditionalStencil) {
   instantiation->getIIR()->insertGlobalVariable("var2", sir::Global(true));
 
   // Run the generated code
-  runTest<N, N, N + 1>(instantiation, outData, halo, {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0}}, -1.0);
+  runTest<N, N, N + 1>(instantiation, outData, refData, {inFills});
 
-  // Verify data
-  verify<N, N, N + 1, halo>(refData, outData["out"]);
+  if(CompilerUtil::hasCudaGPU()) {
+    runTest<N, N, N + 1>(instantiation, outData, refData, {inFills}, -1.0, halo, {"in"}, {"out"},
+                         "", BackendType::CUDA);
+  }
 }
 
 TEST_F(TestCodeGen, CoriolisStencil) {
-  const unsigned N = 12;
-  const unsigned halo = 3;
+  const unsigned N = GRID_SIZE;
+  const unsigned halo = GRIDTOOLS_DAWN_HALO_EXTENT;
   const unsigned size = N * N * (N + 1);
 
   std::array<double, size> u_nnow, v_nnow, fc;
@@ -337,13 +368,17 @@ TEST_F(TestCodeGen, CoriolisStencil) {
   std::vector<double> u_tens, v_tens;
   std::unordered_map<std::string, std::vector<double>> outData(
       {{"u_tens", u_tens}, {"v_tens", v_tens}});
+  std::unordered_map<std::string, std::array<double, size>> refData;
 
   // Initialize data
-  fillValue<N, N, N + 1>(u_ref, -1.0);
-  fillValue<N, N, N + 1>(v_ref, -1.0);
-  fillMath<N, N, N + 1>(u_nnow, 8.0, 2.0, 1.5, 1.5, 2.0, 4.0);
-  fillMath<N, N, N + 1>(v_nnow, 5.0, 1.2, 1.3, 1.7, 2.2, 3.5);
-  fillMath<N, N, N + 1>(fc, 2.0, 1.3, 1.4, 1.6, 2.1, 3.0);
+  fillValue<N, N, N + 1>(u_ref);
+  fillValue<N, N, N + 1>(v_ref);
+  std::vector<double> u_fill = {8.0, 2.0, 1.5, 1.5, 2.0, 4.0};
+  fillMath<N, N, N + 1>(u_fill, u_nnow);
+  std::vector<double> v_fill = {5.0, 1.2, 1.3, 1.7, 2.2, 3.5};
+  fillMath<N, N, N + 1>(v_fill, v_nnow);
+  std::vector<double> fc_fill = {2.0, 1.3, 1.4, 1.6, 2.1, 3.0};
+  fillMath<N, N, N + 1>(fc_fill, fc);
 
   // Populate reference data...
   for(int k = 0; k <= N - 1; ++k) {
@@ -361,27 +396,115 @@ TEST_F(TestCodeGen, CoriolisStencil) {
     }
   }
 
+  refData["u_tens"] = u_ref;
+  refData["v_tens"] = v_ref;
+
   // Deserialize the IIR
   auto instantiation = CompilerUtil::load("input/coriolis_stencil.iir", options_, context_);
 
   // Run the generated code
-  runTest<N, N, N + 1>(instantiation, outData, halo,
-                       {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0},
-                        {5.0, 1.2, 1.3, 1.7, 2.2, 3.5},
-                        {2.0, 1.3, 1.4, 1.6, 2.1, 3.0}},
-                       -1.0, {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"});
-
-  // Verify data
-  verify<N, N, N + 1, halo>(u_ref, outData["u_tens"]);
-  verify<N, N, N + 1, halo>(v_ref, outData["v_tens"]);
+  runTest<N, N, N + 1>(instantiation, outData, refData, {u_fill, v_fill, fc_fill}, -1.0, halo,
+                       {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"});
 
   if(CompilerUtil::hasCudaGPU()) {
-    runTest<N, N, N + 1>(instantiation, outData, halo,
-                         {{8.0, 2.0, 1.5, 1.5, 2.0, 4.0},
-                          {5.0, 1.2, 1.3, 1.7, 2.2, 3.5},
-                          {2.0, 1.3, 1.4, 1.6, 2.1, 3.0}},
-                         -1.0, {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"}, "",
-                         BackendType::CUDA);
+    runTest<N, N, N + 1>(instantiation, outData, refData, {u_fill, v_fill, fc_fill}, -1.0, halo,
+                         {"u_nnow", "v_nnow", "fc"}, {"u_tens", "v_tens"}, "", BackendType::CUDA);
+  }
+}
+
+TEST_F(TestCodeGen, YPPMStencil) {
+  const unsigned N = GRID_SIZE;
+  const unsigned halo = GRIDTOOLS_DAWN_HALO_EXTENT;
+  const unsigned size = N * N * (N + 1);
+
+  std::array<double, size> q, dya;
+  std::array<double, size> al_ref;
+  std::vector<double> al_out;
+  std::unordered_map<std::string, std::vector<double>> outData({{"al", al_out}});
+  std::unordered_map<std::string, std::array<double, size>> refData;
+
+  // Initialize data
+  fillValue<N, N, N + 1>(al_ref);
+  std::vector<double> q_fill = {8.0, 2.0, 1.5, 1.5, 2.0, 4.0};
+  fillMath<N, N, N + 1>(q_fill, q);
+  std::vector<double> dy_fill = {5.0, 1.2, 1.3, 1.7, 2.2, 3.5};
+  fillMath<N, N, N + 1>(dy_fill, dya);
+
+  // Populate reference data...
+  //  for(int k = 0; k <= N - 1; ++k) {
+  //    for(int i = halo; i <= N - halo - 1; ++i) {
+  //      for(int j = halo; j <= N - halo - 1; ++j) {
+  //        al(i + 0, j + 0, k + 0) =
+  //            ((m_globals.p1 * (q(i + 0, j + -1, k + 0) + q(i + 0, j + 0, k + 0))) -
+  //             (m_globals.p2 * (q(i + 0, j + -2, k + 0) + q(i + 0, j + 1, k + 0))));
+  //      }
+  //    }
+  //    for(int i = halo; i <= N - halo - 1; ++i) {
+  //      for(int j = halo; j <= N - halo - 1; ++j) {
+  //        if(checkOffset(stage210GlobalJIndices[0], stage210GlobalJIndices[1],
+  //                       globalOffsets[1] + j)) {
+  //          al(i + 0, j + 0, k + 0) = ((((-m_globals.c1) * q(i + 0, j + -2, k + 0)) +
+  //                                      (m_globals.c2 * q(i + 0, j + -1, k + 0))) +
+  //                                     (m_globals.c3 * q(i + 0, j + 0, k + 0)));
+  //          al(i + 0, j + 1, k + 0) =
+  //              ((::dawn::float_type)0.5 *
+  //               (((((((::dawn::float_type)2 * dya(i + 0, j + 0, k + 0)) +
+  //                    dya(i + 0, j + -1, k + 0)) *
+  //                   q(i + 0, j + 0, k + 0)) -
+  //                  (dya(i + 0, j + 0, k + 0) * q(i + 0, j + -1, k + 0))) /
+  //                 (dya(i + 0, j + -1, k + 0) + dya(i + 0, j + 0, k + 0))) +
+  //                ((((((::dawn::float_type)2 * dya(i + 0, j + 1, k + 0)) + dya(i + 0, j + 2, k +
+  //                0)) *
+  //                   q(i + 0, j + 1, k + 0)) -
+  //                  (dya(i + 0, j + 1, k + 0) * q(i + 0, j + 2, k + 0))) /
+  //                 (dya(i + 0, j + 1, k + 0) + dya(i + 0, j + 2, k + 0)))));
+  //          al(i + 0, j + 2, k + 0) =
+  //              (((m_globals.c3 * q(i + 0, j + 1, k + 0)) + (m_globals.c2 * q(i + 0, j + 2, k +
+  //              0))) -
+  //               (m_globals.c1 * q(i + 0, j + 3, k + 0)));
+  //        }
+  //      }
+  //    }
+  //    for(int i = halo; i <= N - halo - 1; ++i) {
+  //      for(int j = halo; j <= N - halo - 1; ++j) {
+  //        if(checkOffset(stage283GlobalJIndices[0], stage283GlobalJIndices[1],
+  //                       globalOffsets[1] + j)) {
+  //          al(i + 0, j + 0, k + 0) = ((((-m_globals.c1) * q(i + 0, j + -2, k + 0)) +
+  //                                      (m_globals.c2 * q(i + 0, j + -1, k + 0))) +
+  //                                     (m_globals.c3 * q(i + 0, j + 0, k + 0)));
+  //          al(i + 0, j + 1, k + 0) =
+  //              ((::dawn::float_type)0.5 *
+  //               (((((((::dawn::float_type)2 * dya(i + 0, j + 0, k + 0)) +
+  //                    dya(i + 0, j + -1, k + 0)) *
+  //                   q(i + 0, j + 0, k + 0)) -
+  //                  (dya(i + 0, j + 0, k + 0) * q(i + 0, j + -1, k + 0))) /
+  //                 (dya(i + 0, j + -1, k + 0) + dya(i + 0, j + 0, k + 0))) +
+  //                ((((((::dawn::float_type)2 * dya(i + 0, j + 1, k + 0)) + dya(i + 0, j + 2, k +
+  //                0)) *
+  //                   q(i + 0, j + 1, k + 0)) -
+  //                  (dya(i + 0, j + 1, k + 0) * q(i + 0, j + 2, k + 0))) /
+  //                 (dya(i + 0, j + 1, k + 0) + dya(i + 0, j + 2, k + 0)))));
+  //          al(i + 0, j + 2, k + 0) =
+  //              (((m_globals.c3 * q(i + 0, j + 1, k + 0)) + (m_globals.c2 * q(i + 0, j + 2, k +
+  //              0))) -
+  //               (m_globals.c1 * q(i + 0, j + 3, k + 0)));
+  //        }
+  //      }
+  //    }
+  //  }
+
+  refData["al"] = al_ref;
+
+  // Deserialize the IIR
+  auto instantiation = CompilerUtil::load("input/yppm.iir", options_, context_);
+
+  // Run the generated code
+  runTest<N, N, N + 1>(instantiation, outData, refData, {q_fill, dy_fill}, -1.0, halo, {"q", "dya"},
+                       {"al"});
+
+  if(CompilerUtil::hasCudaGPU()) {
+    runTest<N, N, N + 1>(instantiation, outData, refData, {q_fill, dy_fill}, -1.0, halo,
+                         {"q", "dya"}, {"al"}, "", BackendType::CUDA);
   }
 }
 
