@@ -492,6 +492,8 @@ TEST_F(TestCodeGen, YPPMStencil) {
   refData["al"] = al_ref;
 
   // Deserialize the IIR
+  // TOOD: Appears global indices (iteration spaces) are not serialized in the IIR, not sure
+  //       if in the SIR for that matter, need to follow it through the tool chain...
   auto instantiation = CompilerUtil::load("input/yppm.iir", options_, context_);
 
   // Run the generated code
