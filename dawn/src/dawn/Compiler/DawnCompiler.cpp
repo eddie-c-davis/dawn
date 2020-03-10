@@ -114,6 +114,7 @@ createOptimizerOptionsFromAllOptions(const Options& options) {
   retval.NAME = options.NAME;
 #include "dawn/CodeGen/Options.inc"
 #include "dawn/Optimizer/Options.inc"
+#include "dawn/Optimizer/PassOptions.inc"
 #undef OPT
   return retval;
 }
