@@ -63,7 +63,7 @@ public:
   static std::string build(const std::string& srcFile, std::string& outFile,
                            const BackendType backend = BackendType::CXXNaive,
                            const std::string& compiler = compiler_,
-                           const std::vector<std::string>& args = {"-g"});
+                           const std::vector<std::string>& args = {"-g", "-w"});
 
   template <class TPass, typename... Args>
   static void addPass(std::unique_ptr<OptimizerContext>& context,

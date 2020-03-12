@@ -43,7 +43,7 @@ protected:
 
   virtual void SetUp() {
     dawn::UIDGenerator::getInstance()->reset();
-    CompilerUtil::Verbose = true;
+    // CompilerUtil::Verbose = true;
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
@@ -495,6 +495,14 @@ TEST_F(TestCodeGen, YPPMStencil) {
   // TOOD: Appears global indices (iteration spaces) are not serialized in the IIR, not sure
   //       if in the SIR for that matter, need to follow it through the tool chain...
   auto instantiation = CompilerUtil::load("input/yppm.iir", options_, context_);
+
+  // Per issue #724 (MeteoSwiss-APN/dawn/issues/724), globals are not
+  //   deserialized properly, so need to correct before running the test...
+  instantiation->getIIR()->insertGlobalVariable("c1", sir::Global(c1));
+  instantiation->getIIR()->insertGlobalVariable("c2", sir::Global(c2));
+  instantiation->getIIR()->insertGlobalVariable("c3", sir::Global(c3));
+  instantiation->getIIR()->insertGlobalVariable("p1", sir::Global(p1));
+  instantiation->getIIR()->insertGlobalVariable("p2", sir::Global(p2));
 
   // Run the generated code
   runTest<N, N, N + 1>(instantiation, outData, refData, {q_fill, dy_fill}, -1.0, halo, {"q", "dya"},
