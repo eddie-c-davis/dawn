@@ -13,11 +13,11 @@
 ##===------------------------------------------------------------------------------------------===##
 include(GoogleTest)
 
-file(COPY input DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 set(executable ${PROJECT_NAME}IntegrationTestCodeGen)
 add_executable(${executable} TestMain.cpp TestCodeGen.cpp)
 target_add_dawn_standard_props(${executable})
-target_link_libraries(${executable} DawnUnittest gtest gtest_main)
+target_link_libraries(${executable} Dawn DawnUnittest gtest gtest_main)
 gtest_discover_tests(${executable} TEST_PREFIX "Dawn::Integration::CodeGen::"
         EXTRA_ARGS ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CXX_COMPILER} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CMAKE_CUDA_COMPILER}
         DISCOVERY_TIMEOUT 30)
+file(COPY input DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

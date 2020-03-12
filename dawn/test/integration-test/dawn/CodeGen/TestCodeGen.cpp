@@ -43,7 +43,7 @@ protected:
 
   virtual void SetUp() {
     dawn::UIDGenerator::getInstance()->reset();
-    // CompilerUtil::Verbose = true;
+    CompilerUtil::Verbose = true;
   }
 
   template <unsigned M, unsigned N = 1, unsigned P = 1, unsigned D = 3>
