@@ -344,11 +344,6 @@ TEST_F(TestCodeGen, ConditionalStencil) {
 
   refData["out"] = outRef;
 
-  // Per issue #724 (MeteoSwiss-APN/dawn/issues/724), globals are not
-  //   deserialized properly, so need to correct before running the test...
-  instantiation->getIIR()->insertGlobalVariable("var1", sir::Global(int(1)));
-  instantiation->getIIR()->insertGlobalVariable("var2", sir::Global(true));
-
   // Run the generated code
   runTest<N, N, N + 1>(instantiation, outData, refData, {inFills});
 
@@ -492,17 +487,7 @@ TEST_F(TestCodeGen, YPPMStencil) {
   refData["al"] = al_ref;
 
   // Deserialize the IIR
-  // TOOD: Appears global indices (iteration spaces) are not serialized in the IIR, not sure
-  //       if in the SIR for that matter, need to follow it through the tool chain...
   auto instantiation = CompilerUtil::load("input/yppm.iir", options_, context_);
-
-  // Per issue #724 (MeteoSwiss-APN/dawn/issues/724), globals are not
-  //   deserialized properly, so need to correct before running the test...
-  instantiation->getIIR()->insertGlobalVariable("c1", sir::Global(c1));
-  instantiation->getIIR()->insertGlobalVariable("c2", sir::Global(c2));
-  instantiation->getIIR()->insertGlobalVariable("c3", sir::Global(c3));
-  instantiation->getIIR()->insertGlobalVariable("p1", sir::Global(p1));
-  instantiation->getIIR()->insertGlobalVariable("p2", sir::Global(p2));
 
   // Run the generated code
   runTest<N, N, N + 1>(instantiation, outData, refData, {q_fill, dy_fill}, -1.0, halo, {"q", "dya"},
