@@ -38,11 +38,13 @@ class CXXNaiveCodeGen : public CodeGen {
 public:
   ///@brief constructor
   CXXNaiveCodeGen(const stencilInstantiationContext& ctx, DiagnosticsEngine& engine,
-                  int maxHaloPoint);
+                  int maxHaloPoint, bool parallelize = false);
   virtual ~CXXNaiveCodeGen();
   virtual std::unique_ptr<TranslationUnit> generateCode() override;
 
 private:
+  bool parallelize_;
+
   std::string generateStencilInstantiation(
       const std::shared_ptr<iir::StencilInstantiation> stencilInstantiation);
 

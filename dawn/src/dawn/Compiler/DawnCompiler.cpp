@@ -420,7 +420,9 @@ DawnCompiler::generate(const std::map<std::string, std::shared_ptr<iir::StencilI
       return CG.generateCode();
     }
     case BackendType::CXXOpt:
-      dawn_unreachable("GTClangOptCXX not supported yet");
+      codegen::cxxnaive::CXXNaiveCodeGen CG(stencilInstantiationMap, diagnostics_,
+                                            options_.MaxHaloPoints, true);
+      return CG.generateCode();
     }
   } catch(...) {
     DiagnosticsBuilder diag(DiagnosticsKind::Error);
