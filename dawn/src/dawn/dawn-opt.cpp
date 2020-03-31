@@ -91,7 +91,7 @@ deserializeInput(const std::string& input) {
           dawn::SIRSerializer::deserializeFromString(input, dawn::SIRSerializer::Format::Byte);
       format = SerializationFormat::Byte;
     } catch(...) {
-      // Do nothing
+      stencilIR = nullptr;
     }
   }
   if(!stencilIR) {
@@ -100,7 +100,7 @@ deserializeInput(const std::string& input) {
           dawn::SIRSerializer::deserializeFromString(input, dawn::SIRSerializer::Format::Json);
       format = SerializationFormat::Json;
     } catch(...) {
-      // Do nothing
+      stencilIR = nullptr;
     }
   }
   // Then try IIR
@@ -111,7 +111,7 @@ deserializeInput(const std::string& input) {
           dawn::IIRSerializer::deserializeFromString(input, dawn::IIRSerializer::Format::Byte);
       format = SerializationFormat::Byte;
     } catch(...) {
-      // Do nothing
+      internalIR = nullptr;
     }
   }
   if(!internalIR && !stencilIR) {
@@ -120,7 +120,7 @@ deserializeInput(const std::string& input) {
           dawn::IIRSerializer::deserializeFromString(input, dawn::IIRSerializer::Format::Json);
       format = SerializationFormat::Json;
     } catch(...) {
-      // Do nothing
+      internalIR = nullptr;
     }
   }
 
@@ -134,6 +134,7 @@ deserializeInput(const std::string& input) {
       stencilIR =
           dawn::SIRSerializer::deserializeFromString(input, dawn::SIRSerializer::Format::Json);
     }
+    break;
   }
   case IRType::IIR: {
     if(format == SerializationFormat::Byte) {
@@ -143,6 +144,7 @@ deserializeInput(const std::string& input) {
       internalIR =
           dawn::IIRSerializer::deserializeFromString(input, dawn::IIRSerializer::Format::Json);
     }
+    break;
   }
   }
 
@@ -158,7 +160,7 @@ int main(int argc, char* argv[]) {
     ("input", "Input file. If unset, reads from stdin.", cxxopts::value<std::string>())
     ("o,out", "Output IIR filename. If unset, writes IIR to stdout.", cxxopts::value<std::string>())
     ("v,verbose", "Set verbosity level to info. If set, use -o or --out to redirect IIR.")
-    ("default-groups", "Add default groups before those in --pass-groups.")
+    ("default-opt", "Add default groups before those in --pass-groups.")
     ("p,pass-groups",
         "Comma-separated ordered list of pass groups to run. See DawnCompiler.h for list. If unset, runs the basic, default groups.",
         cxxopts::value<std::vector<std::string>>()->default_value({}))
@@ -189,11 +191,13 @@ int main(int argc, char* argv[]) {
   dawnOptions.NAME = result[OPTION].as<TYPE>();
 #include "dawn/Optimizer/Options.inc"
 #undef OPT
+  // Never serialize IIR here
+  dawnOptions.SerializeIIR = false;
   dawn::DawnCompiler compiler(dawnOptions);
 
   // Determine the list of pass groups to run
   std::list<dawn::PassGroup> passGroups;
-  if(result.count("default-groups") > 0) {
+  if(result.count("default-opt") > 0) {
     passGroups = dawn::DawnCompiler::defaultPassGroups();
   }
   for(auto pg : result["pass-groups"].as<std::vector<std::string>>()) {
@@ -234,8 +238,12 @@ int main(int argc, char* argv[]) {
                                                 : dawn::IIRSerializer::Format::Json;
     if(result.count("out"))
       dawn::IIRSerializer::serialize(result["out"].as<std::string>(), instantiation, iirFormat);
-    else
+    else if(!dawnOptions.DumpStencilInstantiation) {
+
       std::cout << dawn::IIRSerializer::serializeToString(instantiation, iirFormat);
+    } else {
+      DAWN_LOG(INFO) << "dump-si present. Skipping serialization.";
+    }
   }
 
   return 0;
