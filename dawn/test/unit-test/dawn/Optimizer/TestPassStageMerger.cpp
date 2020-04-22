@@ -174,4 +174,11 @@ TEST_F(TestPassStageMerger, MergerTestTwoCopiesMixed) {
   runTest("input/StageMergerTestTwoCopiesMixed.iir", 1, {1}, {2}, {1, 1});
 }
 
+TEST_F(TestPassStageMerger, FvtP2dMerge) {
+  /*
+    A subset of the FvtP2D FV3 stencil...
+    } */
+  runTest("input/fvtp2d_stencil2.iir", 1, {1}, {9}, {1, 1, 1, 1, 1, 1, 1, 1, 1});
+}
+
 } // anonymous namespace
