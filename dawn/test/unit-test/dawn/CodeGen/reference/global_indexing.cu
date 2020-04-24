@@ -199,6 +199,11 @@ public:
     sync_storages(in_field,out_field);
   }
 
+  void runWithoutSync(storage_ijk_t in_field, storage_ijk_t out_field) {
+    m_stencil_28.run(in_field,out_field);
+;
+  }
+
   std::string get_name()  const {
     return std::string(s_name);
   }
