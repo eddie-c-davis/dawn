@@ -22,15 +22,15 @@ TEST_F(TestComputeMaximumExtent, test_compute_maximum_extent_01) {
   auto instantiation = loadTest("input/test_compute_maximum_extent_01.sir");
   const auto& stencils = instantiation->getStencils();
 
-  ASSERT_TRUE((stencils.size() == 1));
+  ASSERT_EQ(stencils.size(), 1);
   const std::unique_ptr<iir::Stencil>& stencil = stencils[0];
-  ASSERT_TRUE((stencil->getNumStages() == 1));
-  ASSERT_TRUE((stencil->getChildren().size() == 1));
+  ASSERT_EQ(stencil->getNumStages(), 1);
+  ASSERT_EQ(stencil->getChildren().size(), 1);
 
   auto const& mss = (*stencil->childrenBegin());
   auto stage1_ptr = mss->childrenBegin();
   std::unique_ptr<iir::Stage> const& stage1 = *stage1_ptr;
-  ASSERT_TRUE((stage1->getChildren().size() == 1));
+  ASSERT_EQ(stage1->getChildren().size(), 1);
 
   const auto& doMethod1 = stage1->getSingleDoMethod();
   ASSERT_TRUE((doMethod1.computeMaximumExtents(instantiation->getMetaData().getAccessIDFromName(
