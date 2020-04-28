@@ -13,7 +13,6 @@
 //===------------------------------------------------------------------------------------------===//
 #include "dawn/Validator/MultiStageChecker.h"
 #include "dawn/IIR/MultiStage.h"
-#include "dawn/IIR/StencilInstantiation.h"
 #include "dawn/Support/Exception.h"
 
 namespace dawn {
@@ -22,43 +21,35 @@ MultiStageChecker::MultiStageChecker(iir::StencilInstantiation* instantiation,
     : instantiation_(instantiation), maxHaloPoints_(maxHaloPoints) {}
 
 void MultiStageChecker::run() {
-  iir::Extents maxExtents{ast::cartesian};
-  for(const auto& stencil : instantiation_->getStencils()) {
-    // Merge stencil field extents...
-    for(const auto& fieldPair : stencil->getOrderedFields()) {
-      const auto& fieldInfo = fieldPair.second;
-      if(!fieldInfo.IsTemporary) {
-        const auto& fieldExtents = fieldInfo.field.getExtentsRB();
-        maxExtents.merge(fieldExtents);
+  unsigned nMultiStages = 0;
+  for(const auto& multiStage : iterateIIROver<iir::MultiStage>(*instantiation_->getIIR())) {
+    const auto& firstStage = *(multiStage->getChildren().begin());
+    auto multiStageDependencyGraph =
+        multiStage->getDependencyGraphOfInterval(firstStage->getEnclosingExtendedInterval());
+
+    for(const auto& stage : multiStage->getChildren()) {
+      // Merge stage into dependency graph
+      if(stage->hasSingleDoMethod()) {
+        const iir::DoMethod& doMethod = stage->getSingleDoMethod();
+        multiStageDependencyGraph.merge(*doMethod.getDependencyGraph());
       }
     }
-  }
 
-  // Get horizontal extents
-  int iMinus, iPlus, jMinus, jPlus;
-  try {
-    const auto& horizExtent =
-        iir::extent_cast<iir::CartesianExtent const&>(maxExtents.horizontalExtent());
-    iMinus = horizExtent.iMinus();
-    iPlus = horizExtent.iPlus();
-    jMinus = horizExtent.jMinus();
-    jPlus = horizExtent.jPlus();
-  } catch(const std::bad_cast& error) {
-    iMinus = iPlus = jMinus = jPlus = 0;
-  }
+    std::string errorMessage;
+    if(!multiStageDependencyGraph.empty()) {
+      if(!multiStageDependencyGraph.isDAG()) {
+        errorMessage =
+            "Multistage " + std::to_string(nMultiStages) + "has cycle in dependency graph";
+      } else if(multiStageDependencyGraph.exceedsMaxBoundaryPoints(maxHaloPoints_)) {
+        errorMessage = "Multistage " + std::to_string(nMultiStages) +
+                       " extent exeeds max halo points " + std::to_string(maxHaloPoints_);
+      }
+    }
 
-  // Get vertical extents
-  const auto& vertExtent = maxExtents.verticalExtent();
-  int kMinus = vertExtent.minus();
-  int kPlus = vertExtent.plus();
+    if(!errorMessage.empty())
+      throw CompileError(errorMessage);
 
-  // Check if max extents exceed max halo points...
-  if(iPlus > maxHaloPoints_ || iMinus < -maxHaloPoints_ || jPlus > maxHaloPoints_ ||
-     jMinus < -maxHaloPoints_ || kPlus > maxHaloPoints_ || kMinus < -maxHaloPoints_) {
-    throw CompileError(
-        "Multistage extent (" + std::to_string(iMinus) + "," + std::to_string(iPlus) + "," +
-        std::to_string(jMinus) + "," + std::to_string(jPlus) + "," + std::to_string(kMinus) + "," +
-        std::to_string(kPlus) + ") exeeds max halo points " + std::to_string(maxHaloPoints_));
+    nMultiStages += 1;
   }
 }
 

@@ -388,6 +388,28 @@ void StencilInstantiation::computeDerivedInfo() {
   for(const auto& MS : iterateIIROver<iir::MultiStage>(*(this->getIIR()))) {
     MS->update(iir::NodeUpdateType::levelAndTreeAbove);
   }
+
+  createDependencyGraph();
+}
+
+void StencilInstantiation::createDependencyGraph() {
+  const auto& IIR = this->getIIR();
+  for(const auto& doMethod : iterateIIROver<iir::DoMethod>(*IIR)) {
+    // and do the update of the Graphs
+    doMethod->update(iir::NodeUpdateType::levelAndTreeAbove);
+    iir::DependencyGraphAccesses newGraph(this->getMetaData());
+
+    // Build the Dependency graph (bottom to top)
+    const auto& statements = doMethod->getAST().getStatements();
+    for(int stmtIndex = statements.size() - 1; stmtIndex >= 0; --stmtIndex) {
+      const auto& stmt = doMethod->getAST().getStatements()[stmtIndex];
+      newGraph.insertStatement(stmt);
+    }
+
+    doMethod->setDependencyGraph(std::move(newGraph));
+    // and do the update
+    doMethod->update(iir::NodeUpdateType::levelAndTreeAbove);
+  }
 }
 
 } // namespace iir

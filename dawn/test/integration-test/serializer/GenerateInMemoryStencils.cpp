@@ -135,6 +135,8 @@ createCopyStencilIIRInMemory(OptimizerContext& optimizer) {
     MSPtr->update(iir::NodeUpdateType::levelAndTreeAbove);
   }
 
+  target->computeDerivedInfo();
+
   return target;
 }
 
@@ -325,6 +327,8 @@ createLapStencilIIRInMemory(OptimizerContext& optimizer) {
     MSPtr->update(iir::NodeUpdateType::levelAndTreeAbove);
   }
 
+  target->computeDerivedInfo();
+
   return target;
 }
 
@@ -351,6 +355,8 @@ createUnstructuredSumEdgeToCellsIIRInMemory(dawn::OptimizerContext& optimizer) {
                              b.at(out_f), b.reduceOverNeighborExpr(
                                               Op::plus, b.at(in_f, HOffsetType::withOffset, 0),
                                               b.lit(0.), {LocType::Cells, LocType::Edges}))))))));
+  stencil_instantiation->computeDerivedInfo();
+
   return stencil_instantiation;
 }
 

@@ -34,7 +34,6 @@
 #include "dawn/Optimizer/PassSetBlockSize.h"
 #include "dawn/Optimizer/PassSetBoundaryCondition.h"
 #include "dawn/Optimizer/PassSetCaches.h"
-#include "dawn/Optimizer/PassSetDependencyGraph.h"
 #include "dawn/Optimizer/PassSetLoopOrder.h"
 #include "dawn/Optimizer/PassSetNonTempCaches.h"
 #include "dawn/Optimizer/PassSetStageGraph.h"
@@ -216,7 +215,6 @@ DawnCompiler::optimize(const std::map<std::string, std::shared_ptr<iir::StencilI
       // todo: this does not work since it does not check if it was already run
       break;
     case PassGroup::PrintStencilGraph:
-      optimizer.pushBackPass<PassSetDependencyGraph>();
       // Plain diagnostics, should not even be a pass but is independent
       optimizer.pushBackPass<PassPrintStencilGraph>();
       // validation check
@@ -230,7 +228,6 @@ DawnCompiler::optimize(const std::map<std::string, std::shared_ptr<iir::StencilI
       break;
     case PassGroup::StageReordering:
       optimizer.pushBackPass<PassSetStageGraph>();
-      optimizer.pushBackPass<PassSetDependencyGraph>();
       // running the actual pass
       optimizer.pushBackPass<PassStageReordering>(reorderStrategy);
       // moved stages around ...
@@ -241,7 +238,6 @@ DawnCompiler::optimize(const std::map<std::string, std::shared_ptr<iir::StencilI
     case PassGroup::StageMerger:
       // merging requires the stage graph
       optimizer.pushBackPass<PassSetStageGraph>();
-      optimizer.pushBackPass<PassSetDependencyGraph>();
       // running the actual pass
       optimizer.pushBackPass<PassStageMerger>();
       // since this can change the scope of temporaries ...
@@ -313,7 +309,6 @@ DawnCompiler::optimize(const std::map<std::string, std::shared_ptr<iir::StencilI
     case PassGroup::MultiStageMerger:
       // set up the graphs for the analysis
       optimizer.pushBackPass<PassSetStageGraph>();
-      optimizer.pushBackPass<PassSetDependencyGraph>();
       // run the pass
       optimizer.pushBackPass<PassMultiStageMerger>();
       // since this can change the scope of temporaries ...

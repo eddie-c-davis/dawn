@@ -18,7 +18,6 @@
 #include "dawn/IIR/ASTStmt.h"
 #include "dawn/IIR/StencilInstantiation.h"
 #include "dawn/Optimizer/PassMultiStageMerger.h"
-#include "dawn/Optimizer/PassSetDependencyGraph.h"
 #include "dawn/Optimizer/PassSetStageGraph.h"
 #include "dawn/Optimizer/PassSetSyncStage.h"
 #include "dawn/Optimizer/PassStageMerger.h"

@@ -124,6 +124,9 @@ public:
   /// The method processes the stages of each multi-stage from the instantiation and
   /// stores the computation in the `Extent` member of the Stage (@see Stage)
   void computeDerivedInfo();
+
+  /// @brief This method computes the dependency graph for the stencil instantiation
+  void createDependencyGraph();
 };
 } // namespace iir
 } // namespace dawn

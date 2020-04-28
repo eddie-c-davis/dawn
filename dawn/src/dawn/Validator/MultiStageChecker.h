@@ -15,10 +15,7 @@
 #ifndef DAWN_OPTIMIZER_MULTISTAGECHECKER_H
 #define DAWN_OPTIMIZER_MULTISTAGECHECKER_H
 
-#include "dawn/IIR/ASTExpr.h"
-#include "dawn/IIR/ASTUtil.h"
 #include "dawn/IIR/StencilInstantiation.h"
-#include "dawn/Support/Exception.h"
 
 namespace dawn {
 

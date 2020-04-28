@@ -17,7 +17,6 @@
 #include "dawn/IIR/IIR.h"
 #include "dawn/IIR/StencilInstantiation.h"
 #include "dawn/Optimizer/PassMultiStageMerger.h"
-#include "dawn/Optimizer/PassSetDependencyGraph.h"
 #include "dawn/Optimizer/PassSetStageGraph.h"
 #include "dawn/Optimizer/PassStageReordering.h"
 #include "dawn/Serialization/IIRSerializer.h"
@@ -51,10 +50,6 @@ protected:
     // Run stage graph pass
     PassSetStageGraph stageGraphPass(*context_);
     EXPECT_TRUE(stageGraphPass.run(instantiation));
-
-    // Run dependency graph pass
-    PassSetDependencyGraph dependencyGraphPass(*context_);
-    EXPECT_TRUE(dependencyGraphPass.run(instantiation));
 
     // Run multistage merge pass
     PassMultiStageMerger multiStageMerger(*context_);
