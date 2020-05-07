@@ -69,25 +69,21 @@ lhs += weight * m_div_vec(deref(LibTag{}, red_loc),k+0);
 m_sparse_dimension_idx++;
 return lhs;
 }, std::vector<::dawn::float_type>({(::dawn::float_type) -1.0, (::dawn::float_type) 1.0}));
-      }      for(auto const& loc : getEdges(LibTag{}, m_mesh)) {
 m_nabla2t2_vec(deref(LibTag{}, loc),k+0) = (m_nabla2t2_vec(deref(LibTag{}, loc),k+0) / m_dual_edge_length(deref(LibTag{}, loc),k+0));
+m_sparse_dimension_idx = 0;
+m_nabla2t1_vec(deref(LibTag{}, loc),k+0) = reduce(LibTag{}, m_mesh,loc, (::dawn::float_type) 0.0, std::vector<dawn::LocationType>{dawn::LocationType::Edges, dawn::LocationType::Vertices}, [&](auto& lhs, auto red_loc, auto const& weight) {
+lhs += weight * m_rot_vec(deref(LibTag{}, red_loc),k+0);
+m_sparse_dimension_idx++;
+return lhs;
+}, std::vector<::dawn::float_type>({(::dawn::float_type) -1.0, (::dawn::float_type) 1.0}));
+m_nabla2t1_vec(deref(LibTag{}, loc),k+0) = ((m_tangent_orientation(deref(LibTag{}, loc),k+0) * m_nabla2t1_vec(deref(LibTag{}, loc),k+0)) / m_primal_edge_length(deref(LibTag{}, loc),k+0));
+m_nabla2_vec(deref(LibTag{}, loc),k+0) = (m_nabla2t2_vec(deref(LibTag{}, loc),k+0) - m_nabla2t1_vec(deref(LibTag{}, loc),k+0));
       }      for(auto const& loc : getVertices(LibTag{}, m_mesh)) {
 int m_sparse_dimension_idx = 0;
 m_rot_vec(deref(LibTag{}, loc),k+0) = reduce(LibTag{}, m_mesh,loc, (::dawn::float_type) 0.0, std::vector<dawn::LocationType>{dawn::LocationType::Vertices, dawn::LocationType::Edges}, [&](auto& lhs, auto red_loc) { lhs += (m_vec(deref(LibTag{}, red_loc),k+0) * m_geofac_rot(deref(LibTag{}, loc),m_sparse_dimension_idx, k+0));
 m_sparse_dimension_idx++;
 return lhs;
 });
-      }      for(auto const& loc : getEdges(LibTag{}, m_mesh)) {
-int m_sparse_dimension_idx = 0;
-m_nabla2t1_vec(deref(LibTag{}, loc),k+0) = reduce(LibTag{}, m_mesh,loc, (::dawn::float_type) 0.0, std::vector<dawn::LocationType>{dawn::LocationType::Edges, dawn::LocationType::Vertices}, [&](auto& lhs, auto red_loc, auto const& weight) {
-lhs += weight * m_rot_vec(deref(LibTag{}, red_loc),k+0);
-m_sparse_dimension_idx++;
-return lhs;
-}, std::vector<::dawn::float_type>({(::dawn::float_type) -1.0, (::dawn::float_type) 1.0}));
-      }      for(auto const& loc : getEdges(LibTag{}, m_mesh)) {
-m_nabla2t1_vec(deref(LibTag{}, loc),k+0) = ((m_tangent_orientation(deref(LibTag{}, loc),k+0) * m_nabla2t1_vec(deref(LibTag{}, loc),k+0)) / m_primal_edge_length(deref(LibTag{}, loc),k+0));
-      }      for(auto const& loc : getEdges(LibTag{}, m_mesh)) {
-m_nabla2_vec(deref(LibTag{}, loc),k+0) = (m_nabla2t2_vec(deref(LibTag{}, loc),k+0) - m_nabla2t1_vec(deref(LibTag{}, loc),k+0));
       }    }}      sync_storages();
     }
   };
