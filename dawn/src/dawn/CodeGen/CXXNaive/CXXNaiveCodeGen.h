@@ -37,7 +37,7 @@ namespace cxxnaive {
 std::unique_ptr<TranslationUnit>
 run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
         stencilInstantiationMap,
-    const Options& options = {});
+    const Options& options = {}, bool parallelize = false);
 
 /// @brief GridTools C++ code generation for the gtclang DSL
 /// @ingroup cxxnaive
@@ -45,11 +45,13 @@ class CXXNaiveCodeGen : public CodeGen {
 public:
   ///@brief constructor
   CXXNaiveCodeGen(const StencilInstantiationContext& ctx, DiagnosticsEngine& engine,
-                  int maxHaloPoint);
+                  int maxHaloPoint, bool parallelize = false);
   virtual ~CXXNaiveCodeGen();
   virtual std::unique_ptr<TranslationUnit> generateCode() override;
 
 private:
+  bool parallelize_;
+
   std::string generateStencilInstantiation(
       const std::shared_ptr<iir::StencilInstantiation> stencilInstantiation);
 

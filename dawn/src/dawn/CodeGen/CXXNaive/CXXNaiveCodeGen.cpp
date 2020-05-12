@@ -39,15 +39,24 @@ namespace cxxnaive {
 namespace {
 std::string makeLoopImpl(int lowerExtent, int upperExtent, const std::string& dim,
                          const std::string& lower, const std::string& upper,
-                         const std::string& comparison, const std::string& increment) {
-  return "for(int " + dim + " = " + lower + "+" + std::to_string(lowerExtent) + "; " + dim + " " +
-         comparison + " " + upper + "+" + std::to_string(upperExtent) + "; " + increment + dim +
-         ")";
+                         const std::string& comparison, const std::string& increment,
+                         bool isParallel = false, bool isVectorized = false) {
+  std::string loopCode = "";
+  std::string pragma = "#pragma omp ";
+  if(isParallel)
+    loopCode = pragma + "parallel for\n";
+  else if(isVectorized)
+    loopCode = pragma + "simd\n";
+  loopCode += "for(int " + dim + " = " + lower + "+" + std::to_string(lowerExtent) + "; " + dim +
+              " " + comparison + " " + upper + "+" + std::to_string(upperExtent) + "; " +
+              increment + dim + ")";
+  return loopCode;
 }
 
 std::string makeIJLoop(int lowerExtent, int upperExtent, const std::string dom,
-                       const std::string& dim) {
-  return makeLoopImpl(lowerExtent, upperExtent, dim, dim + "Min", dim + "Max", " <= ", "++");
+                       const std::string& dim, bool parallelize = false) {
+  return makeLoopImpl(lowerExtent, upperExtent, dim, dim + "Min", dim + "Max", " <= ", "++", false,
+                      parallelize);
 }
 
 std::string makeIntervalBoundReadable(std::string dim, const iir::Interval& interval,
@@ -74,22 +83,22 @@ std::string makeIntervalBoundExplicit(std::string dim, const iir::Interval& inte
   return dom + "." + dim + "minus() + " + std::to_string(notEnd + interval.offset(bound));
 }
 
-std::string makeKLoop(bool isBackward, iir::Interval const& interval) {
+std::string makeKLoop(bool isBackward, iir::Interval const& interval, bool parallelize = false) {
 
   const std::string lower = makeIntervalBoundReadable("k", interval, iir::Interval::Bound::lower);
   const std::string upper = makeIntervalBoundReadable("k", interval, iir::Interval::Bound::upper);
 
-  return isBackward ? makeLoopImpl(0, 0, "k", upper, lower, ">=", "--")
-                    : makeLoopImpl(0, 0, "k", lower, upper, "<=", "++");
+  return isBackward ? makeLoopImpl(0, 0, "k", upper, lower, ">=", "--", parallelize)
+                    : makeLoopImpl(0, 0, "k", lower, upper, "<=", "++", parallelize);
 }
 } // namespace
 
 std::unique_ptr<TranslationUnit>
 run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
         stencilInstantiationMap,
-    const Options& options) {
+    const Options& options, bool parallelize) {
   DiagnosticsEngine diagnostics;
-  CXXNaiveCodeGen CG(stencilInstantiationMap, diagnostics, options.MaxHaloSize);
+  CXXNaiveCodeGen CG(stencilInstantiationMap, diagnostics, options.MaxHaloSize, parallelize);
   if(diagnostics.hasDiags()) {
     for(const auto& diag : diagnostics.getQueue())
       DAWN_LOG(INFO) << diag->getMessage();
@@ -100,8 +109,8 @@ run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
 }
 
 CXXNaiveCodeGen::CXXNaiveCodeGen(const StencilInstantiationContext& ctx, DiagnosticsEngine& engine,
-                                 int maxHaloPoint)
-    : CodeGen(ctx, engine, maxHaloPoint) {}
+                                 int maxHaloPoint, bool parallelize)
+    : CodeGen(ctx, engine, maxHaloPoint), parallelize_(parallelize) {}
 
 CXXNaiveCodeGen::~CXXNaiveCodeGen() {}
 
@@ -431,7 +440,8 @@ void CXXNaiveCodeGen::generateStencilClasses(
 
         // for each interval, we generate naive nested loops
         stencilRunMethod.addBlockStatement(
-            makeKLoop((multiStage.getLoopOrder() == iir::LoopOrderKind::Backward), interval),
+            makeKLoop((multiStage.getLoopOrder() == iir::LoopOrderKind::Backward), interval,
+                      parallelize_),
             [&]() {
               for(const auto& stagePtr : multiStage.getChildren()) {
                 iir::Stage& stage = *stagePtr;
@@ -462,7 +472,9 @@ void CXXNaiveCodeGen::generateStencilClasses(
                   stencilRunMethod.addBlockStatement(
                       makeIJLoop(extents.iMinus(), extents.iPlus(), "m_dom", "i"), [&]() {
                         stencilRunMethod.addBlockStatement(
-                            makeIJLoop(extents.jMinus(), extents.jPlus(), "m_dom", "j"), [&] {
+                            makeIJLoop(extents.jMinus(), extents.jPlus(), "m_dom", "j",
+                                       parallelize_),
+                            [&] {
                               if(std::any_of(stage.getIterationSpace().cbegin(),
                                              stage.getIterationSpace().cend(),
                                              [](const auto& p) -> bool { return p.has_value(); })) {
