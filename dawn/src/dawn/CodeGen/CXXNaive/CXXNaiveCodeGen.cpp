@@ -83,13 +83,13 @@ std::string makeIntervalBoundExplicit(std::string dim, const iir::Interval& inte
   return dom + "." + dim + "minus() + " + std::to_string(notEnd + interval.offset(bound));
 }
 
-std::string makeKLoop(bool isBackward, iir::Interval const& interval, bool parallelize = false) {
+std::string makeKLoop(bool isBackward, iir::Interval const& interval, bool isParallel = false) {
 
   const std::string lower = makeIntervalBoundReadable("k", interval, iir::Interval::Bound::lower);
   const std::string upper = makeIntervalBoundReadable("k", interval, iir::Interval::Bound::upper);
 
-  return isBackward ? makeLoopImpl(0, 0, "k", upper, lower, ">=", "--", parallelize)
-                    : makeLoopImpl(0, 0, "k", lower, upper, "<=", "++", parallelize);
+  return isBackward ? makeLoopImpl(0, 0, "k", upper, lower, ">=", "--", isParallel)
+                    : makeLoopImpl(0, 0, "k", lower, upper, "<=", "++", isParallel);
 }
 } // namespace
 
@@ -441,7 +441,7 @@ void CXXNaiveCodeGen::generateStencilClasses(
         // for each interval, we generate naive nested loops
         stencilRunMethod.addBlockStatement(
             makeKLoop((multiStage.getLoopOrder() == iir::LoopOrderKind::Backward), interval,
-                      parallelize_),
+                      (parallelize_ && multiStage.getLoopOrder() == iir::LoopOrderKind::Parallel)),
             [&]() {
               for(const auto& stagePtr : multiStage.getChildren()) {
                 iir::Stage& stage = *stagePtr;
