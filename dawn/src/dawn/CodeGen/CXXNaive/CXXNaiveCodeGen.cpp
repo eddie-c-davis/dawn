@@ -44,7 +44,7 @@ std::string makeLoopImpl(int lowerExtent, int upperExtent, const std::string& di
   std::string loopCode = "";
   std::string pragma = "#pragma omp ";
   if(isParallel)
-    loopCode = pragma + "parallel for\n";
+    loopCode = "\n" + pragma + "parallel for\n";
   else if(isVectorized)
     loopCode = pragma + "simd\n";
   loopCode += "for(int " + dim + " = " + lower + "+" + std::to_string(lowerExtent) + "; " + dim +
