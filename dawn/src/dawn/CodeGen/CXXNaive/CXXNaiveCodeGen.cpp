@@ -649,6 +649,8 @@ std::unique_ptr<TranslationUnit> CXXNaiveCodeGen::generateCode() {
   CodeGen::addMplIfdefs(ppDefines, 30);
   ppDefines.push_back("#include <driver-includes/gridtools_includes.hpp>");
   ppDefines.push_back("using namespace gridtools::dawn;");
+  if(parallelize_)
+    ppDefines.push_back("#include <omp.h>");
   DAWN_LOG(INFO) << "Done generating code";
 
   std::string filename = generateFileName(context_);
