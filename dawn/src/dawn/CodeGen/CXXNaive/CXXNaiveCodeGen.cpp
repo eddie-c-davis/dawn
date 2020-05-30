@@ -647,7 +647,10 @@ std::unique_ptr<TranslationUnit> CXXNaiveCodeGen::generateCode() {
   // [https://github.com/MeteoSwiss-APN/gtclang/issues/32]
   // ==============------------------------------------------------------------------------------===
   CodeGen::addMplIfdefs(ppDefines, 30);
-  ppDefines.push_back("#include <driver-includes/gridtools_includes.hpp>");
+  if(parallelize_) // use gtmock if 'cxxopt' backend...
+    ppDefines.push_back("#include <gtmock-includes/gridtools_includes.hpp>");
+  else
+    ppDefines.push_back("#include <driver-includes/gridtools_includes.hpp>");
   ppDefines.push_back("using namespace gridtools::dawn;");
   if(parallelize_)
     ppDefines.push_back("#include <omp.h>");
