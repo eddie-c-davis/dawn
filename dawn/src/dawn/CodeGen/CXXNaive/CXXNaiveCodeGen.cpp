@@ -96,8 +96,7 @@ std::string makeKLoop(bool isBackward, iir::Interval const& interval, bool isPar
 
 std::unique_ptr<TranslationUnit>
 run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
-        stencilInstantiationMap,
-    const Options& options, bool parallelize) {
+        stencilInstantiationMap, const Options& options, bool parallelize) {
   CXXNaiveCodeGen CG(stencilInstantiationMap, options.MaxHaloSize, parallelize);
 
   return CG.generateCode();
