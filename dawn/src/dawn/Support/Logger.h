@@ -12,15 +12,16 @@
 //
 //===------------------------------------------------------------------------------------------===//
 
-#ifndef DAWN_SUPPORT_LOGGER_H
-#define DAWN_SUPPORT_LOGGER_H
+#pragma once
 
 #include "dawn/Support/SourceLocation.h"
 #include <functional>
 #include <iostream>
 #include <list>
 #include <sstream>
+#include <stack>
 #include <string>
+#include <tuple>
 
 namespace dawn {
 
@@ -86,7 +87,7 @@ public:
 
   /// @brief Report message with file, line in dawn source and source,loc in input DSL code.
   DiagnosticProxy operator()(const std::string& file, int line, const std::string& source,
-                             SourceLocation loc);
+                             SourceLocation loc = SourceLocation());
 
   /// @brief Add a new message -- called from Proxy objects
   /// {
@@ -149,6 +150,12 @@ Logger::MessageFormatter makeMessageFormatter(const std::string type = "");
 /// @brief create a basic (default) diagnostic formatter
 Logger::DiagnosticFormatter makeDiagnosticFormatter(const std::string type = "");
 
+/// @brief Stack Track object for diagnostics
+using DiagnosticStack = std::stack<std::tuple<std::string, SourceLocation>>;
+
+/// @brief Create a stack trace string for diagnostics
+std::string createDiagnosticStackTrace(const std::string& prefix, const DiagnosticStack& stack);
+
 namespace log {
 // Loggers used for information and warnings
 extern Logger info;
@@ -180,5 +187,3 @@ void setVerbosity(Level level);
 #define DAWN_DIAG_INFO_IMPL(file, loc) dawn::log::info(__FILE__, __LINE__, file, loc)
 #define DAWN_DIAG_WARNING_IMPL(file, loc) dawn::log::warn(__FILE__, __LINE__, file, loc)
 #define DAWN_DIAG_ERROR_IMPL(file, loc) dawn::log::error(__FILE__, __LINE__, file, loc)
-
-#endif

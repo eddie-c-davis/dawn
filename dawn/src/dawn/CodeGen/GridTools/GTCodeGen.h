@@ -12,8 +12,7 @@
 //
 //===------------------------------------------------------------------------------------------===//
 
-#ifndef DAWN_CODEGEN_GRIDTOOLS_GTCODEGEN_H
-#define DAWN_CODEGEN_GRIDTOOLS_GTCODEGEN_H
+#pragma once
 
 #include "dawn/CodeGen/CodeGen.h"
 #include "dawn/CodeGen/CodeGenProperties.h"
@@ -44,8 +43,8 @@ run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
 /// @ingroup gt
 class GTCodeGen : public CodeGen {
 public:
-  GTCodeGen(const StencilInstantiationContext& ctx, DiagnosticsEngine& engine, bool useParallelEP,
-            int maxHaloPoints, bool runWithSync = true);
+  GTCodeGen(const StencilInstantiationContext& ctx, bool useParallelEP, int maxHaloPoints,
+            bool runWithSync = true);
   virtual ~GTCodeGen();
 
   virtual std::unique_ptr<TranslationUnit> generateCode() override;
@@ -141,5 +140,3 @@ private:
 } // namespace gt
 } // namespace codegen
 } // namespace dawn
-
-#endif
