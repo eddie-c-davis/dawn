@@ -44,7 +44,8 @@ class CudaCodeGen : public CodeGen {
 public:
   ///@brief constructor
   CudaCodeGen(const StencilInstantiationContext& ctx, int maxHaloPoints, int nsms,
-              int maxBlocksPerSM, const Array3i& domainSize, bool runWithSync = true);
+              int maxBlocksPerSM, const Array3i& domainSize, bool runWithSync = true,
+              bool useGTMock = false);
   virtual ~CudaCodeGen();
   virtual std::unique_ptr<TranslationUnit> generateCode() override;
 
@@ -53,6 +54,7 @@ public:
     int maxBlocksPerSM;
     Array3i domainSize;
     bool runWithSync;
+    bool useGTMock;
   };
 
 private:

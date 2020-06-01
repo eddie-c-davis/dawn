@@ -97,14 +97,14 @@ std::string makeKLoop(bool isBackward, iir::Interval const& interval, bool isPar
 std::unique_ptr<TranslationUnit>
 run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
         stencilInstantiationMap, const Options& options, bool parallelize) {
-  CXXNaiveCodeGen CG(stencilInstantiationMap, options.MaxHaloSize, parallelize);
+  CXXNaiveCodeGen CG(stencilInstantiationMap, options.MaxHaloSize, parallelize, options.UseGTMock);
 
   return CG.generateCode();
 }
 
 CXXNaiveCodeGen::CXXNaiveCodeGen(const StencilInstantiationContext& ctx, int maxHaloPoint,
-                                 bool parallelize)
-    : CodeGen(ctx, maxHaloPoint), parallelize_(parallelize) {}
+                                 bool parallelize, bool useGTMock)
+    : CodeGen(ctx, maxHaloPoint), parallelize_(parallelize), useGTMock_(useGTMock) {}
 
 CXXNaiveCodeGen::~CXXNaiveCodeGen() {}
 
@@ -639,11 +639,11 @@ std::unique_ptr<TranslationUnit> CXXNaiveCodeGen::generateCode() {
   // different TU's is completed, this is no longer necessary.
   // [https://github.com/MeteoSwiss-APN/gtclang/issues/32]
   // ==============------------------------------------------------------------------------------===
+  std::string gtInclude = "driver";
+  if(useGTMock_)
+    gtInclude = "gtmock";
   CodeGen::addMplIfdefs(ppDefines, 30);
-  if(parallelize_) // use gtmock if 'cxxopt' backend...
-    ppDefines.push_back("#include <gtmock-includes/gridtools_includes.hpp>");
-  else
-    ppDefines.push_back("#include <driver-includes/gridtools_includes.hpp>");
+  ppDefines.push_back("#include <" + gtInclude + "-includes/gridtools_includes.hpp>");
   ppDefines.push_back("using namespace gridtools::dawn;");
   if(parallelize_)
     ppDefines.push_back("#include <omp.h>");

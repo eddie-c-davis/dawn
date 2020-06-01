@@ -157,17 +157,19 @@ PYBIND11_MODULE(_dawn4py, m) {
       });
 
   py::class_<dawn::codegen::Options>(m, "CodeGenOptions")
-      .def(py::init([](int MaxHaloSize, bool UseParallelEP, bool RunWithSync, int MaxBlocksPerSM,
-                       int nsms, int DomainSizeI, int DomainSizeJ, int DomainSizeK) {
-             return dawn::codegen::Options{MaxHaloSize, UseParallelEP, RunWithSync, MaxBlocksPerSM,
-                                           nsms,        DomainSizeI,   DomainSizeJ, DomainSizeK};
+      .def(py::init([](int MaxHaloSize, bool UseParallelEP, bool RunWithSync, bool UseGTMock,
+                       int MaxBlocksPerSM, int nsms, int DomainSizeI, int DomainSizeJ, int DomainSizeK) {
+             return dawn::codegen::Options{MaxHaloSize, UseParallelEP, RunWithSync, UseGTMock,
+                                           MaxBlocksPerSM, nsms, DomainSizeI,   DomainSizeJ, DomainSizeK};
            }),
            py::arg("max_halo_size") = 3, py::arg("use_parallel_ep") = false,
-           py::arg("run_with_sync") = true, py::arg("max_blocks_per_sm") = 0, py::arg("nsms") = 0,
-           py::arg("domain_size_i") = 0, py::arg("domain_size_j") = 0, py::arg("domain_size_k") = 0)
+           py::arg("run_with_sync") = true, py::arg("use_gtmock") = false,
+           py::arg("max_blocks_per_sm") = 0, py::arg("nsms") = 0, py::arg("domain_size_i") = 0,
+           py::arg("domain_size_j") = 0, py::arg("domain_size_k") = 0)
       .def_readwrite("max_halo_size", &dawn::codegen::Options::MaxHaloSize)
       .def_readwrite("use_parallel_ep", &dawn::codegen::Options::UseParallelEP)
       .def_readwrite("run_with_sync", &dawn::codegen::Options::RunWithSync)
+      .def_readwrite("use_gtmock", &dawn::codegen::Options::UseGTMock)
       .def_readwrite("max_blocks_per_sm", &dawn::codegen::Options::MaxBlocksPerSM)
       .def_readwrite("nsms", &dawn::codegen::Options::nsms)
       .def_readwrite("domain_size_i", &dawn::codegen::Options::DomainSizeI)
@@ -178,6 +180,7 @@ PYBIND11_MODULE(_dawn4py, m) {
         ss << "max_halo_size=" << self.MaxHaloSize << ",\n    "
            << "use_parallel_ep=" << self.UseParallelEP << ",\n    "
            << "run_with_sync=" << self.RunWithSync << ",\n    "
+           << "use_gtmock=" << self.UseGTMock << ",\n    "
            << "max_blocks_per_sm=" << self.MaxBlocksPerSM << ",\n    "
            << "nsms=" << self.nsms << ",\n    "
            << "domain_size_i=" << self.DomainSizeI << ",\n    "

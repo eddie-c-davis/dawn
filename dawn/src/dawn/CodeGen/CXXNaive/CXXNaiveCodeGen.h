@@ -43,13 +43,14 @@ run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
 class CXXNaiveCodeGen : public CodeGen {
 public:
   ///@brief constructor
-  CXXNaiveCodeGen(const StencilInstantiationContext& ctx,
-                  int maxHaloPoint, bool parallelize = false);
+  CXXNaiveCodeGen(const StencilInstantiationContext& ctx, int maxHaloPoint,
+                  bool parallelize = false, bool useGTMock = false);
   virtual ~CXXNaiveCodeGen();
   virtual std::unique_ptr<TranslationUnit> generateCode() override;
 
 private:
   bool parallelize_;
+  bool useGTMock_;
 
   std::string generateStencilInstantiation(
       const std::shared_ptr<iir::StencilInstantiation> stencilInstantiation);

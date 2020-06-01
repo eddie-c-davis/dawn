@@ -58,14 +58,16 @@ run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
     const Options& options) {
   const Array3i domain_size{options.DomainSizeI, options.DomainSizeJ, options.DomainSizeK};
   CudaCodeGen CG(stencilInstantiationMap, options.MaxHaloSize, options.nsms, options.MaxBlocksPerSM,
-                 domain_size, options.RunWithSync);
+                 domain_size, options.RunWithSync, options.UseGTMock);
 
   return CG.generateCode();
 }
 
 CudaCodeGen::CudaCodeGen(const StencilInstantiationContext& ctx, int maxHaloPoints, int nsms,
-                         int maxBlocksPerSM, const Array3i& domainSize, bool runWithSync)
-    : CodeGen(ctx, maxHaloPoints), codeGenOptions_{nsms, maxBlocksPerSM, domainSize, runWithSync} {}
+                         int maxBlocksPerSM, const Array3i& domainSize, bool runWithSync,
+                         bool useGTMock)
+    : CodeGen(ctx, maxHaloPoints), codeGenOptions_{nsms, maxBlocksPerSM, domainSize, runWithSync,
+                                                   useGTMock} {}
 
 CudaCodeGen::~CudaCodeGen() {}
 
@@ -724,8 +726,11 @@ std::unique_ptr<TranslationUnit> CudaCodeGen::generateCode() {
   // different TU's is completed, this is no longer necessary.
   // [https://github.com/MeteoSwiss-APN/gtclang/issues/32]
   //==============------------------------------------------------------------------------------===
+  std::string gtInclude = "driver";
+  if(codeGenOptions_.useGTMock)
+    gtInclude = "gtmock";
   CodeGen::addMplIfdefs(ppDefines, 30);
-  ppDefines.push_back("#include <driver-includes/gridtools_includes.hpp>");
+  ppDefines.push_back("#include <" + gtInclude + "-includes/gridtools_includes.hpp>");
   ppDefines.push_back("using namespace gridtools::dawn;");
 
   generateBCHeaders(ppDefines);
