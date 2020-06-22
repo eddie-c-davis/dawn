@@ -65,9 +65,9 @@ run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>&
 
 CudaCodeGen::CudaCodeGen(const StencilInstantiationContext& ctx, int maxHaloPoints, int nsms,
                          int maxBlocksPerSM, const Array3i& domainSize, bool runWithSync,
-                         bool useGTMock)
+                         bool useGTMock, bool debug)
     : CodeGen(ctx, maxHaloPoints), codeGenOptions_{nsms, maxBlocksPerSM, domainSize, runWithSync,
-                                                   useGTMock} {}
+                                                   useGTMock, debug} {}
 
 CudaCodeGen::~CudaCodeGen() {}
 
@@ -587,6 +587,7 @@ void CudaCodeGen::generateStencilRunMethod(
     }
 
     stencilRunMethod.addStatement("dim3 blocks(nbx, nby, nbz)");
+
     std::string kernelCall =
         CodeGeneratorHelper::buildCudaKernelName(stencilInstantiation, multiStagePtr) +
         "<<<blocks, threads>>>(";
@@ -605,6 +606,28 @@ void CudaCodeGen::generateStencilRunMethod(
         return false;
       return true;
     });
+
+    if(codeGenOptions_.debug) {
+      stencilRunMethod.addStatement(
+          "printf(\"DEBUG: gdim = (%d,%d,%d)\\n\", blocks.x, blocks.y, blocks.z)");
+      stencilRunMethod.addStatement(
+          "printf(\"DEBUG: bdim = (%d,%d,%d)\\n\", threads.x, threads.y, threads.z)");
+      std::string fieldName;
+      for(const auto& fieldPair : msNonTempFields) {
+        fieldName = metadata.getFieldNameFromAccessID(fieldPair.second.getAccessID());
+        break;
+      }
+      stencilRunMethod.addStatement("printf(\"DEBUG: data_strides = (%d,%d,%d)\\n\", " + fieldName +
+                                    "_ds.strides()[0], " + fieldName + "_ds.strides()[1], " +
+                                    fieldName + "_ds.strides()[2])");
+      for(const auto& fieldPair : tempMSFieldsNonLocalCached) {
+        fieldName = metadata.getFieldNameFromAccessID(fieldPair.second.getAccessID());
+        break;
+      }
+      stencilRunMethod.addStatement("printf(\"DEBUG: temp_strides = (%d,%d,%d)\\n\", " + fieldName +
+                                    "_ds.strides()[0], " + fieldName + "_ds.strides()[1], " +
+                                    fieldName + "_ds.strides()[2])");
+    }
 
     // TODO enable const auto& below and/or enable use RangeToString
     std::string args;

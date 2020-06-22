@@ -45,7 +45,7 @@ public:
   ///@brief constructor
   CudaCodeGen(const StencilInstantiationContext& ctx, int maxHaloPoints, int nsms,
               int maxBlocksPerSM, const Array3i& domainSize, bool runWithSync = true,
-              bool useGTMock = false);
+              bool useGTMock = false, bool debug = false);
   virtual ~CudaCodeGen();
   virtual std::unique_ptr<TranslationUnit> generateCode() override;
 
@@ -55,6 +55,7 @@ public:
     Array3i domainSize;
     bool runWithSync;
     bool useGTMock;
+    bool debug;
   };
 
 private:
