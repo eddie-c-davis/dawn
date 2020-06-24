@@ -15,6 +15,7 @@
 #include "dawn/CodeGen/Driver.h"
 #include "dawn/CodeGen/CXXNaive-ico/CXXNaiveCodeGen.h"
 #include "dawn/CodeGen/CXXNaive/CXXNaiveCodeGen.h"
+#include "dawn/CodeGen/CXXOpt/CXXOptCodeGen.h"
 #include "dawn/CodeGen/Cuda-ico/CudaIcoCodeGen.h"
 #include "dawn/CodeGen/Cuda/CudaCodeGen.h"
 #include "dawn/CodeGen/GridTools/GTCodeGen.h"
@@ -59,7 +60,7 @@ run(const std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>& con
   case Backend::CUDAIco:
     return cudaico::run(context, options);
   case Backend::CXXOpt:
-    return cxxnaive::run(context, options, true);
+    return cxxopt::run(context, options);
   }
   // This line should not be needed but the compiler seems to complain if it is not present.
   return nullptr;
