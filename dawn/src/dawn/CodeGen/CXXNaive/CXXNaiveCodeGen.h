@@ -49,8 +49,7 @@ public:
 
 protected:
   std::string generateStencilInstantiation(
-      const std::shared_ptr<iir::StencilInstantiation> stencilInstantiation,
-      const std::string& nameSpace = "cxxnaive");
+      const std::shared_ptr<iir::StencilInstantiation> stencilInstantiation);
 
   void
   generateStencilFunctions(Class& stencilWrapperClass,

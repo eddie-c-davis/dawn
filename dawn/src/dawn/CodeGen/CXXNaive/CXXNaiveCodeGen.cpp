@@ -100,14 +100,13 @@ CXXNaiveCodeGen::CXXNaiveCodeGen(const StencilInstantiationContext& ctx, int max
 CXXNaiveCodeGen::~CXXNaiveCodeGen() {}
 
 std::string CXXNaiveCodeGen::generateStencilInstantiation(
-    const std::shared_ptr<iir::StencilInstantiation> stencilInstantiation,
-    const std::string& nameSpace) {
+    const std::shared_ptr<iir::StencilInstantiation> stencilInstantiation) {
   using namespace codegen;
 
   std::stringstream ssSW;
 
   Namespace dawnNamespace("dawn_generated", ssSW);
-  Namespace cxxNamespace(nameSpace, ssSW);
+  Namespace cxxnaiveNamespace("cxxnaive", ssSW);
 
   const auto& globalsMap = stencilInstantiation->getIIR()->getGlobalVariableMap();
 
@@ -130,7 +129,7 @@ std::string CXXNaiveCodeGen::generateStencilInstantiation(
 
   stencilWrapperClass.commit();
 
-  cxxNamespace.commit();
+  cxxnaiveNamespace.commit();
   dawnNamespace.commit();
 
   return ssSW.str();

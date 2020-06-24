@@ -75,9 +75,12 @@ private:
       std::array<int,3> in_offsets{0,0,0};
       gridtools::data_view<storage_ijk_t> out= gridtools::make_host_view(out_);
       std::array<int,3> out_offsets{0,0,0};
-    for(int k = kMin + 0+0; k <= kMax + 0+0; ++k) {
+    
+#pragma omp parallel for
+for(int k = kMin + 0+0; k <= kMax + 0+0; ++k) {
       for(int i = iMin+0; i  <=  iMax+0; ++i) {
-        for(int j = jMin+0; j  <=  jMax+0; ++j) {
+        #pragma omp simd
+for(int j = jMin+0; j  <=  jMax+0; ++j) {
 ::dawn::float_type dx;
 {
   out(i+0, j+0, k+0) = (((int) -4 * (in(i+0, j+0, k+0) + (in(i+1, j+0, k+0) + (in(i+-1, j+0, k+0) + (in(i+0, j+-1, k+0) + in(i+0, j+1, k+0)))))) / (dx * dx));

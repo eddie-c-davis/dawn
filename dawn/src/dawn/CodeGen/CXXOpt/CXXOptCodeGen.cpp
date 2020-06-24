@@ -110,7 +110,38 @@ CXXOptCodeGen::~CXXOptCodeGen() {}
 
 std::string CXXOptCodeGen::generateStencilInstantiation(
     const std::shared_ptr<iir::StencilInstantiation> stencilInstantiation) {
-  return CXXNaiveCodeGen::generateStencilInstantiation(stencilInstantiation, "cxxopt");
+  using namespace codegen;
+
+  std::stringstream ssSW;
+
+  Namespace dawnNamespace("dawn_generated", ssSW);
+  Namespace cxxoptNamespace("cxxopt", ssSW);
+
+  const auto& globalsMap = stencilInstantiation->getIIR()->getGlobalVariableMap();
+
+  Class stencilWrapperClass(stencilInstantiation->getName(), ssSW);
+  stencilWrapperClass.changeAccessibility("private");
+
+  CodeGenProperties codeGenProperties = computeCodeGenProperties(stencilInstantiation.get());
+
+  generateStencilFunctions(stencilWrapperClass, stencilInstantiation, codeGenProperties);
+
+  generateStencilClasses(stencilInstantiation, stencilWrapperClass, codeGenProperties);
+
+  generateStencilWrapperMembers(stencilWrapperClass, stencilInstantiation, codeGenProperties);
+
+  generateStencilWrapperCtr(stencilWrapperClass, stencilInstantiation, codeGenProperties);
+
+  generateGlobalsAPI(*stencilInstantiation, stencilWrapperClass, globalsMap, codeGenProperties);
+
+  generateStencilWrapperRun(stencilWrapperClass, stencilInstantiation, codeGenProperties);
+
+  stencilWrapperClass.commit();
+
+  cxxoptNamespace.commit();
+  dawnNamespace.commit();
+
+  return ssSW.str();
 }
 
 void CXXOptCodeGen::generateStencilClasses(
