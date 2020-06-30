@@ -7,6 +7,8 @@
 #include "dawn/Compiler/Driver.h"
 #include "dawn/CodeGen/Driver.h"
 
+#include "dawn/Support/Logger.h"
+
 #include <string>
 #include <list>
 #include <map>
