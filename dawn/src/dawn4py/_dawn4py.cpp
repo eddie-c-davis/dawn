@@ -72,7 +72,7 @@ PYBIND11_MODULE(_dawn4py, m) {
                       int MaxFieldsPerStencil, bool MaxCutMSS, int BlockSizeI, int BlockSizeJ,
                       int BlockSizeK, int SMemMaxFields, int TexCacheMaxFields, bool SplitStencils,
                       bool MergeStages, bool MergeDoMethods, bool DisableKCaches, bool KeepVarnames,
-                      bool ReportAccesses, bool SerializeIIR, const std::string& IIRFormat,
+		      bool FieldVersioning, bool ReportAccesses, bool SerializeIIR, const std::string& IIRFormat,
                       bool DumpSplitGraphs, bool DumpStageGraph, bool DumpTemporaryGraphs,
                       bool DumpRaceConditionGraph, bool DumpStencilInstantiation,
                       bool WriteStencilInstantiation, bool DumpStencilGraph) {
@@ -90,6 +90,7 @@ PYBIND11_MODULE(_dawn4py, m) {
                                  MergeDoMethods,
                                  DisableKCaches,
                                  KeepVarnames,
+				 FieldVersioning,
                                  ReportAccesses,
                                  SerializeIIR,
                                  IIRFormat,
@@ -107,11 +108,11 @@ PYBIND11_MODULE(_dawn4py, m) {
           py::arg("s_mem_max_fields") = 8, py::arg("tex_cache_max_fields") = 3,
           py::arg("split_stencils") = false, py::arg("merge_stages") = false,
           py::arg("merge_do_methods") = true, py::arg("disable_k_caches") = false,
-          py::arg("keep_varnames") = false, py::arg("report_accesses") = false,
-          py::arg("serialize_iir") = false, py::arg("iir_format") = "json",
-          py::arg("dump_split_graphs") = false, py::arg("dump_stage_graph") = false,
-          py::arg("dump_temporary_graphs") = false, py::arg("dump_race_condition_graph") = false,
-          py::arg("dump_stencil_instantiation") = false,
+          py::arg("keep_varnames") = false, py::arg("field_versioning") = true,
+	  py::arg("report_accesses") = false, py::arg("serialize_iir") = false,
+	  py::arg("iir_format") = "json", py::arg("dump_split_graphs") = false,
+	  py::arg("dump_stage_graph") = false, py::arg("dump_temporary_graphs") = false,
+	  py::arg("dump_race_condition_graph") = false, py::arg("dump_stencil_instantiation") = false,
           py::arg("write_stencil_instantiation") = false, py::arg("dump_stencil_graph") = false)
       .def_readwrite("max_halo_points", &dawn::Options::MaxHaloPoints)
       .def_readwrite("reorder_strategy", &dawn::Options::ReorderStrategy)
@@ -127,6 +128,7 @@ PYBIND11_MODULE(_dawn4py, m) {
       .def_readwrite("merge_do_methods", &dawn::Options::MergeDoMethods)
       .def_readwrite("disable_k_caches", &dawn::Options::DisableKCaches)
       .def_readwrite("keep_varnames", &dawn::Options::KeepVarnames)
+      .def_readwrite("field_versioning", &dawn::Options::FieldVersioning)
       .def_readwrite("report_accesses", &dawn::Options::ReportAccesses)
       .def_readwrite("serialize_iir", &dawn::Options::SerializeIIR)
       .def_readwrite("iir_format", &dawn::Options::IIRFormat)
@@ -155,6 +157,7 @@ PYBIND11_MODULE(_dawn4py, m) {
            << "merge_do_methods=" << self.MergeDoMethods << ",\n    "
            << "disable_k_caches=" << self.DisableKCaches << ",\n    "
            << "keep_varnames=" << self.KeepVarnames << ",\n    "
+           << "field_versioning=" << self.FieldVersioning << ",\n    "
            << "report_accesses=" << self.ReportAccesses << ",\n    "
            << "serialize_iir=" << self.SerializeIIR << ",\n    "
            << "iir_format="

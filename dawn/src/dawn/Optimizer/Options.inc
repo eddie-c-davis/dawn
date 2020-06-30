@@ -61,6 +61,8 @@ OPT(bool, DisableKCaches, false, "disable-kcaches", "",
     "Disable use of the k-caches", "", false, true)
 OPT(bool, KeepVarnames, false, "keep-varnames", "",
     "Keep the names of locally defined variables (this should merely be used for debugging as it may result in invalid code)", "", false, true)
+OPT(bool, FieldVersioning, true, "field-versioning", "",
+    "Enable field versioning pass", "", false, true)
 
 OPT(bool, ReportAccesses, false, "report-accesses", "",
     "Detailed report on the accesses of each statement", "", false, true)

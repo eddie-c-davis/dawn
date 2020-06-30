@@ -97,6 +97,8 @@ bool PassFieldVersioning::run(
     const std::shared_ptr<iir::StencilInstantiation>& stencilInstantiation,
     const Options& options) {
   numRenames_ = 0;
+  if(!options.FieldVersioning)
+    return true;
 
   for(const auto& stencilPtr : stencilInstantiation->getStencils()) {
     iir::Stencil& stencil = *stencilPtr;
