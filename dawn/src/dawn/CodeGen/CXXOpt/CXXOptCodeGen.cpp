@@ -407,11 +407,16 @@ std::unique_ptr<TranslationUnit> CXXOptCodeGen::generateCode() {
   ppDefines.push_back("#undef DAWN_BACKEND_T");
   ppDefines.push_back("#define DAWN_BACKEND_T CXXOPT");
 
+<<<<<<< HEAD
   std::string gtInclude = "driver";
   if(useGTMock_)
     gtInclude = "gtmock";
   CodeGen::addMplIfdefs(ppDefines, 30);
   ppDefines.push_back("#include <" + gtInclude + "-includes/gridtools_includes.hpp>");
+=======
+  CodeGen::addMplIfdefs(ppDefines, 30);
+  ppDefines.push_back("#include <driver-includes/gridtools_includes.hpp>");
+>>>>>>> master
   ppDefines.push_back("using namespace gridtools::dawn;");
   ppDefines.push_back("#include <omp.h>");
   DAWN_LOG(INFO) << "Done generating code";
