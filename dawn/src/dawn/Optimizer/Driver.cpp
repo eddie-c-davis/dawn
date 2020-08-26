@@ -63,8 +63,8 @@
 namespace dawn {
 
 std::list<PassGroup> defaultPassGroups() {
-  return {PassGroup::SetStageName, PassGroup::StageReordering, PassGroup::StageMerger,
-          PassGroup::SetCaches, PassGroup::SetBlockSize};
+  return {PassGroup::SetStageName, PassGroup::MultiStageMerger, PassGroup::StageReordering,
+          PassGroup::StageMerger, PassGroup::SetCaches, PassGroup::SetBlockSize};
 }
 
 std::map<std::string, std::shared_ptr<iir::StencilInstantiation>>
